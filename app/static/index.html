@@ -133,7 +133,11 @@
   .set-actions[hidden] { display: none; }
   .set-reset.danger { border-color: color-mix(in srgb, var(--miss) 45%, var(--border)); color: var(--miss); }
   .set-reset.danger:hover { background: var(--miss-bg); }
-  .verify-unverified { color: var(--miss); }
+  /* Amber, not red — a brand-new, not-yet-verified email is the expected
+     state for every signup, not something gone wrong. Reuse the existing
+     "semantic" amber token (already used for semantic-cache-hit badges)
+     rather than --miss, which reads as an error/failure signal. */
+  .verify-unverified { color: var(--semantic); }
   .acct-subform { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .acct-subform[hidden] { display: none; }
   .acct-subform input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 11px;
