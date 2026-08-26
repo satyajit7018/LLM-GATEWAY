@@ -18,6 +18,7 @@ variable away. See [OVERVIEW.md](OVERVIEW.md) for the fuller feature tour and
 [SECURITY.md](SECURITY.md) for the account-security model.
 
 **Contents:** [Architecture](#architecture) · [Quickstart](#quickstart) ·
+[Checking progress from your phone](#checking-progress-from-your-phone) ·
 [Accounts, BYO keys & sync](#accounts-byo-keys--sync) ·
 [Projects](#projects) · [Web UI](#web-ui) · [API](#api) ·
 [Code IDE + local execution](#code-ide--local-execution) ·
@@ -75,6 +76,35 @@ Or run it containerised with a real, persistent Redis:
 ```bash
 docker compose up --build           # gateway + Redis → http://localhost:8000
 ```
+
+## Checking progress from your phone
+
+By default `uvicorn` binds to `127.0.0.1` — only reachable from the laptop
+running it. To check on a build from your phone, keep the laptop as the
+actual host and reach it privately over **[Tailscale](https://tailscale.com)**
+(a mesh VPN between your own devices) rather than exposing it to the public
+internet:
+
+1. Install Tailscale on the laptop and sign in; install the Tailscale app on
+   your phone and sign into the **same account**. Both devices now have a
+   stable private address (MagicDNS name or `100.x.x.x` IP), reachable from
+   either device from anywhere — home Wi-Fi, mobile data, another network.
+2. Run the server bound to all interfaces, not just localhost:
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+3. On your phone, open `http://<laptop's-tailscale-name>:8000` — the same
+   responsive web UI, now reachable from anywhere your laptop has power and
+   a network connection. Sign in with your account (see
+   [Accounts, BYO keys & sync](#accounts-byo-keys--sync)) so conversations,
+   Code tabs, and the task board are the same data either device sees.
+4. Optional but recommended: `tailscale serve https / http://localhost:8000`
+   gives the Tailscale address a real HTTPS certificate, so you can set
+   `COOKIE_SECURE=1` even though the laptop itself has no public domain.
+
+Traffic never leaves Tailscale's private network, so nothing here needs the
+[deployment checklist](SECURITY.md#deployment-checklist) that a real public
+deployment would — the laptop is never reachable from the open internet.
 
 ## Streaming, tests, logging, Docker
 
