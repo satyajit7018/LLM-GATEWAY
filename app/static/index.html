@@ -258,6 +258,28 @@
     body.project-focus aside.open .new-chat .btn-label { display: inline; }
     body.project-focus .backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; }
   }
+
+  /* Project focus mode (Phase 2): the IDE/preview panel splits left/right
+     with the chat instead of sitting below it — a deliberate exception to
+     the "always below chat" rule everywhere else, scoped to Projects only.
+     Gated on the panel actually being mounted here (a direct child of
+     <main>, done in mountPreviewInChat()) AND open, so a closed panel or
+     one still parked in its stacked-mode position never triggers this. */
+  body.project-focus main:has(> #preview-panel.open) {
+    display: grid; grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.1fr);
+    align-items: stretch; gap: 14px;
+  }
+  body.project-focus main:has(> #preview-panel.open) > #preview-panel {
+    position: static; width: auto; height: auto; max-height: none; margin: 14px 14px 14px 0;
+  }
+  @media (max-width: 1050px) {
+    /* not enough width for two real columns — fall back to the normal
+       stacked-below-chat layout even inside a Project. */
+    body.project-focus main:has(> #preview-panel.open) { display: flex; }
+    body.project-focus main:has(> #preview-panel.open) > #preview-panel {
+      width: 100%; height: 420px; max-height: 75vh; margin: 4px 22px 14px;
+    }
+  }
   .ci-title .ci-ico { width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px; color: var(--accent2); }
   /* at-a-glance build status per code tab — a cheap stand-in for a task board:
      reuses the same run/streaming/checking state the message trace already tracks. */
@@ -279,6 +301,7 @@
   .chat-item .del:hover { color: var(--miss); background: var(--miss-bg); }
 
   main { display: flex; flex-direction: column; min-height: 0; min-width: 0; position: relative; }
+  .chat-column { display: flex; flex-direction: column; min-height: 0; min-width: 0; flex: 1; }
   .chat-scroll { flex: 1; overflow-y: auto; min-height: 0; }
   .welcome { padding-top: 11vh; }
   .chat-scroll .wrap { padding: 24px 22px 8px; }
@@ -1126,6 +1149,7 @@
   </aside>
 
   <main>
+   <div class="chat-column" id="chat-column">
     <div class="chat-scroll" id="chat-scroll">
       <div class="wrap"><div id="messages"></div></div>
     </div>
@@ -1183,6 +1207,7 @@
         <input type="file" id="in-file" hidden multiple>
       </div>
     </div>
+   </div>
   </main>
 </div>
 
@@ -2124,14 +2149,24 @@ function _renderFrame() {
   _consoleLogs = []; renderConsole(); clearRuntimeMarkers();
   $("preview-frame").srcdoc = _instrument(_previewDoc);
 }
-// The preview panel is a single shared DOM node that always renders inline in
-// the chat flow — this moves it under the currently-open conversation's
+// The preview panel is a single shared DOM node that normally renders inline
+// in the chat flow — this moves it under the currently-open conversation's
 // messages if it isn't already there. ("Full IDE" just makes this same box
 // taller with a different internal layout — see enterIde/exitIde — it never
 // pops out to a side panel.)
+// Exception: inside a Project (body.project-focus), the panel instead mounts
+// as a direct child of <main> so the CSS split-view selector
+// (main:has(> #preview-panel.open)) can engage and lay it out side-by-side
+// with the chat column. Every other context is untouched.
 function mountPreviewInChat() {
+  const panel = $("preview-panel");
+  if (document.body.classList.contains("project-focus")) {
+    const main = document.querySelector("main");
+    if (panel.parentElement !== main) main.appendChild(panel);
+    return;
+  }
   const wrap = document.querySelector("#chat-scroll .wrap");
-  if ($("preview-panel").parentElement !== wrap) wrap.appendChild($("preview-panel"));
+  if (panel.parentElement !== wrap) wrap.appendChild(panel);
 }
 function parkPreviewAtHome() {
   $("preview-panel-home").insertAdjacentElement("afterend", $("preview-panel"));
