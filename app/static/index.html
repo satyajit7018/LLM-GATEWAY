@@ -122,7 +122,6 @@
   .set-row[hidden] { display: none; }
   .set-label { color: var(--muted); flex: none; }
   .set-val { font-weight: 640; color: var(--text); font-size: 12.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .set-row#acct-row .set-val { direction: rtl; text-align: left; }   /* long emails: keep the domain in view, ellipsize the front */
   .set-sep { height: 1px; background: var(--border); margin: 12px 0; }
   .seg { display: inline-flex; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 2px; gap: 2px; }
   .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 550; padding: 4px 9px; border-radius: 9px; cursor: pointer; }
@@ -4423,6 +4422,20 @@ $("del-confirm").addEventListener("click", async () => {
   } catch (err) { $("del-err").textContent = err.message; $("del-err").hidden = false; btn.disabled = false; }
 });
 
+// Truncates a long email for the fixed-width Settings row without cutting
+// mid-domain — the local part (before "@") is shortened with a "…" while the
+// "@domain" stays fully intact, since the domain is what a user actually
+// recognizes their own account by. Short emails pass through untouched.
+function _shortEmail(email, maxLen = 20) {
+  if (email.length <= maxLen) return email;
+  const at = email.lastIndexOf("@");
+  if (at === -1) return email.slice(0, maxLen - 1) + "…";
+  const local = email.slice(0, at), domain = email.slice(at);   // domain keeps the "@"
+  if (domain.length >= maxLen - 4) return email.slice(0, maxLen - 1) + "…";   // pathological: huge domain, fall back to a plain clip
+  const keep = Math.max(3, maxLen - domain.length - 1);
+  return local.slice(0, keep) + "…" + domain;
+}
+
 async function bootApp(user) {
   if (user) {   // namespace this user's chats so accounts don't share history
     LS_KEY = "llm-gateway-chats-v2::" + user.id;
@@ -4441,7 +4454,8 @@ async function bootApp(user) {
     store.owner = _ownerEmail = user.email;
     _syncEnabled = true;
     await _syncPull();          // ...then prefer the account's synced copy if it has one
-    $("acct-email").textContent = user.email;
+    $("acct-email").textContent = _shortEmail(user.email);
+    $("acct-email").title = user.email;
     ["acct-sep", "acct-label", "acct-row", "acct-actions"].forEach(id => $(id).hidden = false);
     renderVerifyRow(user);
     $("acct-signout").addEventListener("click", async () => {
