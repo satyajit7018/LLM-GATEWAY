@@ -311,7 +311,14 @@
     background: var(--panel); box-shadow: inset 0 1px 0 var(--glass-hi); }
   .composer-dock .wrap { padding: 12px 22px 14px; }
   .composer-foot { display: flex; align-items: center; gap: 12px; padding: 6px 8px 0; }
-  .composer-foot .composer-hint { flex: 1; padding: 0; }
+  /* A small "?" badge replaces what used to be a full line of always-on fine
+     print under every message box — the same info, just tucked behind a
+     hover/tap instead of competing for attention on every screen. */
+  .composer-help { flex: none; width: 16px; height: 16px; border-radius: 50%;
+    border: 1px solid var(--border); background: none; color: var(--faint);
+    font: 700 10px/1 inherit; display: inline-flex; align-items: center;
+    justify-content: center; padding: 0; cursor: help; }
+  .composer-help:hover, .composer-help:focus-visible { color: var(--accent); border-color: var(--accent); }
   .jump-latest { position: absolute; left: 50%; transform: translateX(-50%); bottom: 128px; z-index: 15;
     display: none; align-items: center; gap: 5px; font: inherit; font-size: 12.5px; font-weight: 550;
     color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
@@ -382,7 +389,6 @@
   button.send:disabled { opacity: .55; cursor: default; }
   .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .composer-hint { font-size: 11.5px; color: var(--faint); padding: 4px 8px 2px; }
   .model-bar { display: flex; align-items: center; gap: 8px; padding: 4px 6px 8px; color: var(--muted); border-bottom: 1px solid var(--border); margin-bottom: 6px; }
   .model-pick { position: relative; flex: none; }
   .plogo { width: 16px; height: 16px; display: block; flex: none; }
@@ -932,7 +938,6 @@
     /* composer controls wrap instead of overflowing */
     .model-bar { flex-wrap: wrap; row-gap: 6px; }
     .model-hint { display: none; }
-    .composer-hint { display: none; }
     /* preview/editor/terminal toolbars don't wrap and were overflowing the
        viewport with no way to reach the clipped tabs/buttons — drop the
        subtitle to buy width, and let whatever's still too wide scroll. */
@@ -1198,7 +1203,7 @@
             </div>
           </div>
           <div class="composer-foot">
-            <span class="composer-hint">Photos &amp; camera shots go to the vision model · PDFs &amp; text files are read in · same input twice = cache hit</span>
+            <button type="button" class="composer-help" aria-label="Composer tips" title="Photos & camera shots go to the vision model · PDFs & text files are read in · same input twice = cache hit">?</button>
           </div>
         </form>
         <input type="file" id="in-photo" accept="image/*" hidden multiple>
