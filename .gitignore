@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+baseline_results.csv
+requests.db
+app_data.db
+.DS_Store
+.pytest_cache/
+*.bak
+
+# Local editor/assistant tooling config and internal planning notes — not part of the app.
+.claude/
+docs/commercialization/
