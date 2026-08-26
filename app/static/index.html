@@ -1418,7 +1418,7 @@ function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } c
 
 // ---- server-side conversation sync (Phase 4) — localStorage stays the fast
 // local cache; once logged in, the account DB is the cross-device copy. ----
-let _syncEnabled = false, _syncTimer = null;
+let _syncEnabled = false, _syncTimer = null, _ownerEmail = null;
 function _syncPush() {
   if (!_syncEnabled) return;
   clearTimeout(_syncTimer);
@@ -1438,6 +1438,7 @@ async function _syncPull() {
     const remote = JSON.parse(d.data);
     if (remote && remote.conversations && remote.conversations.length) {
       remote.projects = remote.projects || [];
+      remote.owner = _ownerEmail;   // stamp/refresh the tag so a later boot can trust this cache
       store = remote;
       try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch {}   // mirror locally without re-triggering a push
     }
@@ -4426,6 +4427,18 @@ async function bootApp(user) {
   if (user) {   // namespace this user's chats so accounts don't share history
     LS_KEY = "llm-gateway-chats-v2::" + user.id;
     store = load();             // fast local copy first...
+    // The namespace above is keyed by numeric id, which is only unique as long
+    // as ids are never reused — true in normal operation, but a wiped/reseeded
+    // database (self-hosting, a fresh dev install) hands the same id to a
+    // different account. Tag the cache with the email it actually belongs to,
+    // so a stale cache under a recycled id is never mistaken for this
+    // account's own history and pushed up as its "local copy to seed the
+    // server with" (see _syncPull below).
+    if (store.owner && store.owner !== user.email) {
+      const id = uid();
+      store = { conversations: [{ id, title: "New chat", created: Date.now(), messages: [] }], currentId: id, projects: [] };
+    }
+    store.owner = _ownerEmail = user.email;
     _syncEnabled = true;
     await _syncPull();          // ...then prefer the account's synced copy if it has one
     $("acct-email").textContent = user.email;
