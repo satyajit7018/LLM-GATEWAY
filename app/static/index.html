@@ -363,7 +363,10 @@
   .pet svg { width: 100%; height: 100%; overflow: visible; }
   .pet svg * { transform-box: fill-box; transform-origin: center; }
   .pet-rig, .pet-lift { transform-box: view-box; transform-origin: 36px 40px; }
-  .pet-eye-wrap { transition: none; }
+  /* Written every frame from JS (_petFrame) while the cursor moves — no CSS
+     transition here, a rAF loop already eases these toward their target. */
+  .pet-rig { transform: translate(var(--rig-x, 0px), var(--rig-y, 0px)); }
+  .pet-eye-wrap { transform: translate(var(--eye-x, 0px), var(--eye-y, 0px)); }
   .pet-body {
     fill: url(#pet-body-grad); stroke: var(--accent); stroke-width: 1.2; transition: stroke .3s ease;
     filter: drop-shadow(0 6px 10px rgba(0,0,0,.22));
@@ -420,6 +423,14 @@
     .pet, .pet *, .pet[data-mood]::after { animation: none !important; transition: none !important; }
   }
   @media (max-width: 760px), (hover: none), (pointer: coarse) { .pet { display: none; } }
+
+  /* Hover-proximity perk: the cursor got close (see _petFrame's hysteresis) —
+     a little lift and a brighter glow, like she noticed. */
+  .pet.pet-near .pet-lift { transform: translateY(-2.5px) scale(1.06); }
+  .pet.pet-near .pet-arm-l { transform: translateX(-1.6px); }
+  .pet.pet-near .pet-arm-r { transform: translateX(1.6px); }
+  .pet.pet-near .pet-eye { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 85%, transparent)); }
+  .pet.pet-near .pet-glow { opacity: .38; }
 
   /* Live-metrics header badge (hit-rate ring) + popup — docked in the header
      like Tokens/Settings, not a floating draggable widget. */
@@ -4050,6 +4061,88 @@ function setPetMood(mood, autoRevertMs) {
     : mood === "sad" ? "That one didn't go through" : "Idle";
   clearTimeout(_petRevertTimer);
   if (autoRevertMs) _petRevertTimer = setTimeout(() => { pet.dataset.mood = "idle"; pet.title = "Idle"; }, autoRevertMs);
+  _petTrackKick();   // apply the new mood's tracking gain immediately, even with a still cursor
+}
+
+// ---- pet interactivity: cursor tracking, hover perk, poke ----
+// Eyes and body lean toward the cursor (eased, not 1:1) the way EVE's whole
+// head/eye assembly turns to track something she's looking at, rather than
+// snapping. Everything here writes to the .pet-rig/.pet-eye-wrap transforms
+// added in CSS, never to .pet/.pet-body/.pet-eye — those still belong
+// entirely to the mood keyframes in setPetMood's world, untouched by this.
+const PET_TRACK_GAIN = { idle: 1, thinking: .25, happy: .6, sad: .35 };
+let _petPtr = null, _petDirty = false, _petRaf = 0;
+let _petRect = null, _petRectAt = 0;
+let _petCur = { eyeX: 0, eyeY: 0, rigX: 0, rigY: 0 };
+let _petPokeCount = 0;
+const _clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function _petPointerMove(e) {
+  _petPtr = { x: e.clientX, y: e.clientY };
+  _petDirty = true;
+  if (!_petRaf) _petRaf = requestAnimationFrame(_petFrame);
+}
+function _petTrackKick() {
+  _petDirty = true;
+  if (!_petRaf && $("pet")) _petRaf = requestAnimationFrame(_petFrame);
+}
+function _petFrame() {
+  _petRaf = 0;
+  const pet = $("pet");
+  if (!pet || !_petPtr) return;
+  const now = performance.now();
+  if (!_petRect || now - _petRectAt > 200) { _petRect = pet.getBoundingClientRect(); _petRectAt = now; }
+  const r = _petRect;
+  if (!r.width) { _petDirty = false; return; }   // hidden (mobile / reduced-motion never gets here anyway)
+
+  const ax = r.left + r.width * 0.5, ay = r.top + r.height * 0.34;
+  const dx = _petPtr.x - ax, dy = _petPtr.y - ay;
+  const nx = _clamp(dx / 420, -1, 1), ny = _clamp(dy / 300, -1, 1);
+
+  const mood = pet.dataset.mood || "idle";
+  const gain = PET_TRACK_GAIN[mood] ?? 1;
+  const sadBias = mood === "sad" ? 0.6 : 0;
+  const target = {
+    eyeX: nx * 2.6 * gain, eyeY: (ny * 1.8 + sadBias) * gain,
+    rigX: nx * 1.6 * gain, rigY: (ny * 1.1 + sadBias * 0.6) * gain,
+  };
+  let settled = true;
+  for (const k in target) {
+    const d = target[k] - _petCur[k];
+    if (Math.abs(d) > 0.01) settled = false;
+    _petCur[k] += d * (k.startsWith("eye") ? 0.18 : 0.10);
+  }
+  pet.style.setProperty("--eye-x", _petCur.eyeX.toFixed(2) + "px");
+  pet.style.setProperty("--eye-y", _petCur.eyeY.toFixed(2) + "px");
+  pet.style.setProperty("--rig-x", _petCur.rigX.toFixed(2) + "px");
+  pet.style.setProperty("--rig-y", _petCur.rigY.toFixed(2) + "px");
+
+  // Hover-proximity perk — only while idle/happy; a busy or upset pet doesn't
+  // perk up just because the cursor wandered near.
+  const d = Math.hypot(dx, dy);
+  const perkEligible = mood === "idle" || mood === "happy";
+  if (perkEligible && d < 140) pet.classList.add("pet-near");
+  else if (!perkEligible || d > 190) pet.classList.remove("pet-near");
+
+  _petDirty = false;
+  if (!settled || _petDirty) _petRaf = requestAnimationFrame(_petFrame);
+}
+function _petPoke() {
+  const pet = $("pet"); if (!pet || pet.classList.contains("pet-poke")) return;
+  pet.classList.add("pet-poke");
+  setTimeout(() => pet.classList.remove("pet-poke"), 640);
+  _petPokeCount++;
+  if (_petPokeCount % 5 === 0 && pet.dataset.mood === "idle") {
+    pet.classList.add("pet-heart-go");
+    setTimeout(() => pet.classList.remove("pet-heart-go"), 1100);
+  }
+}
+function initPet() {
+  const pet = $("pet"); if (!pet) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || matchMedia("(pointer: coarse)").matches) return;
+  window.addEventListener("pointermove", _petPointerMove, { passive: true });
+  window.addEventListener("resize", () => { _petRect = null; });
+  pet.addEventListener("click", _petPoke);
 }
 // One streaming attempt; fills `msg` as tokens arrive. Throws an Error carrying
 // `.status` (HTTP code, or 0 for network/mid-stream) so the caller can classify.
@@ -4771,7 +4864,7 @@ async function bootApp(user) {
       loadFreeQuota();
     }
   }
-  renderSidebar(); renderFeed(); tick(); loadModels(); loadServerUsage(); setInterval(tick, 3000);
+  renderSidebar(); renderFeed(); tick(); loadModels(); loadServerUsage(); setInterval(tick, 3000); initPet();
 }
 
 (async () => {
