@@ -4524,6 +4524,10 @@ function _petPoke() {
   const wasSleepingInRoutine = _petRoutineActive && _petRoutinePhaseIdx ===
     PET_ROUTINE_PHASES.findIndex(p => p.name === "sleep") && pet.dataset.routine === "sleep";
   _petWake();   // cancels the routine, if any, as a normal interrupt
+  // A fresh poke always wins over a still-running laptop follow-up from an
+  // earlier one — otherwise pet-work-bob (from that follow-up) would keep
+  // fighting this new poke's own animation for .pet-lift.
+  pet.classList.remove("pet-poke-laptop");
   pet.classList.add("pet-poke");
   setTimeout(() => pet.classList.remove("pet-poke"), 640);
   // Delayed rather than immediate: cook's own animation would otherwise start
@@ -4551,6 +4555,9 @@ function _petPoke() {
 function _petSpin() {
   const pet = $("pet"); if (!pet || pet.classList.contains("pet-spin")) return;
   _petWake();
+  // Same reasoning as _petPoke — a still-running laptop follow-up would
+  // otherwise mask the spin's own animation on .pet-lift.
+  pet.classList.remove("pet-poke-laptop");
   pet.classList.add("pet-spin");
   setTimeout(() => pet.classList.remove("pet-spin"), 700);
 }
