@@ -4,7 +4,11 @@ __pycache__/
 .env
 baseline_results.csv
 requests.db
+requests.db-wal
+requests.db-shm
 app_data.db
+app_data.db-wal
+app_data.db-shm
 .DS_Store
 .pytest_cache/
 *.bak
