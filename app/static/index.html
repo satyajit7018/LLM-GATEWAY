@@ -4154,10 +4154,21 @@ function _petFrame() {
     if (Math.abs(d) > 0.01) settled = false;
     _petCur[k] += d * (k.startsWith("eye") ? 0.18 : 0.10);
   }
+  // Autonomous wander: cursor's been still for a while but not long enough
+  // to sleep — a slow, self-driven drift, like EVE idly hovering in place
+  // rather than freezing dead still. Additive on top of the settled cursor
+  // offset above, never written into _petCur, so it can't fight the easing.
+  const idleMs = now - _petLastMoveAt;
+  let wanderX = 0, wanderY = 0, wandering = false;
+  if (mood === "idle" && idleMs > 4000 && idleMs < PET_SLEEP_AFTER_MS) {
+    wandering = true;
+    wanderX = Math.sin(now / 2200) * 3;
+    wanderY = Math.cos(now / 3100) * 1.4;
+  }
   pet.style.setProperty("--eye-x", _petCur.eyeX.toFixed(2) + "px");
   pet.style.setProperty("--eye-y", _petCur.eyeY.toFixed(2) + "px");
-  pet.style.setProperty("--rig-x", _petCur.rigX.toFixed(2) + "px");
-  pet.style.setProperty("--rig-y", _petCur.rigY.toFixed(2) + "px");
+  pet.style.setProperty("--rig-x", (_petCur.rigX + wanderX).toFixed(2) + "px");
+  pet.style.setProperty("--rig-y", (_petCur.rigY + wanderY).toFixed(2) + "px");
 
   // Hover-proximity perk — only while idle/happy; a busy or upset pet doesn't
   // perk up just because the cursor wandered near.
@@ -4167,7 +4178,7 @@ function _petFrame() {
   else if (!perkEligible || d > 190) pet.classList.remove("pet-near");
 
   _petDirty = false;
-  if (!settled || _petDirty) _petRaf = requestAnimationFrame(_petFrame);
+  if (!settled || _petDirty || wandering) _petRaf = requestAnimationFrame(_petFrame);
 }
 function _petPoke() {
   const pet = $("pet"); if (!pet || pet.classList.contains("pet-poke")) return;
