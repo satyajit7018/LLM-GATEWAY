@@ -2009,10 +2009,9 @@ function renderFeed() {
     const chips = code
       ? ["Landing page for a coffee shop", "A to-do list app in one HTML file", "Bouncing-ball animation on canvas", "Python: read a CSV and plot it"]
       : EXAMPLES;
-    // Only the plain "you're back" welcome gets the recap — a brand-new
-    // signup has no history yet, and the Code-tab welcome is a different
-    // empty state entirely, not a place to report on chat usage.
-    const recap = (!code && !fresh) ? renderUsageRecap() : "";
+    // Only Code tabs and Project chats get the recap — a plain normal chat's
+    // welcome stays as-is, and a brand-new signup has no history yet either way.
+    const recap = (!fresh && (code || !!conv.projectId)) ? renderUsageRecap() : "";
     box.innerHTML = `<div class="welcome"><div class="welcome-logo${code ? " code" : ""}">${logo}</div>` +
       `<div class="welcome-badge"><span class="dot"></span>${esc(badge)}</div>` +
       `<h3>${heading}</h3><p>${blurb}</p>` +
