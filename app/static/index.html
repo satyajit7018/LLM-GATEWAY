@@ -4182,8 +4182,8 @@ function _petFrame() {
   let wanderX = 0, wanderY = 0, wandering = false;
   if (mood === "idle" && idleMs > 1200 && idleMs < PET_SLEEP_AFTER_MS) {
     wandering = true;
-    wanderX = Math.sin(now / 2200) * 3;
-    wanderY = Math.cos(now / 3100) * 1.4;
+    wanderX = Math.sin(now / 2200) * 9;
+    wanderY = Math.cos(now / 3100) * 4;
   }
   pet.style.setProperty("--eye-x", _petCur.eyeX.toFixed(2) + "px");
   pet.style.setProperty("--eye-y", _petCur.eyeY.toFixed(2) + "px");
