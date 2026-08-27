@@ -256,23 +256,24 @@
      below 760px the sidebar is already a full overlay drawer by default,
      so there's nothing extra to minimize there. */
   @media (min-width: 761px) {
-    body.project-focus .body { grid-template-columns: 56px 1fr; }
-    body.project-focus .menu-btn { display: block; }
-    body.project-focus .side-search,
-    body.project-focus .side-scroll { display: none; }
-    body.project-focus .side-actions { flex-direction: column; margin: 14px 6px; gap: 6px; }
-    body.project-focus .new-chat { padding: 10px 0; justify-content: center; }
-    body.project-focus .new-chat .btn-label { display: none; }
-    body.project-focus aside.open {
+    .body { transition: grid-template-columns .18s ease; }
+    body.project-focus .body, body.sidebar-slim .body { grid-template-columns: 56px 1fr; }
+    body.project-focus .menu-btn, body.sidebar-slim .menu-btn { display: block; }
+    body.project-focus .side-search, body.sidebar-slim .side-search,
+    body.project-focus .side-scroll, body.sidebar-slim .side-scroll { display: none; }
+    body.project-focus .side-actions, body.sidebar-slim .side-actions { flex-direction: column; margin: 14px 6px; gap: 6px; }
+    body.project-focus .new-chat, body.sidebar-slim .new-chat { padding: 10px 0; justify-content: center; }
+    body.project-focus .new-chat .btn-label, body.sidebar-slim .new-chat .btn-label { display: none; }
+    body.project-focus aside.open, body.sidebar-slim aside.open {
       position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 30;
       box-shadow: var(--shadow);
     }
-    body.project-focus aside.open .side-search { display: flex; }
-    body.project-focus aside.open .side-scroll { display: block; }
-    body.project-focus aside.open .side-actions { flex-direction: row; margin: 14px 12px 8px; gap: 8px; }
-    body.project-focus aside.open .new-chat { padding: 10px 12px; justify-content: center; }
-    body.project-focus aside.open .new-chat .btn-label { display: inline; }
-    body.project-focus .backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; }
+    body.project-focus aside.open .side-search, body.sidebar-slim aside.open .side-search { display: flex; }
+    body.project-focus aside.open .side-scroll, body.sidebar-slim aside.open .side-scroll { display: block; }
+    body.project-focus aside.open .side-actions, body.sidebar-slim aside.open .side-actions { flex-direction: row; margin: 14px 12px 8px; gap: 8px; }
+    body.project-focus aside.open .new-chat, body.sidebar-slim aside.open .new-chat { padding: 10px 12px; justify-content: center; }
+    body.project-focus aside.open .new-chat .btn-label, body.sidebar-slim aside.open .new-chat .btn-label { display: inline; }
+    body.project-focus .backdrop.show, body.sidebar-slim .backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; }
   }
 
   /* Project focus mode (Phase 2): the IDE/preview panel splits left/right
@@ -1965,6 +1966,19 @@ function renderUsageRecap() {
   </div>`;
 }
 
+// Auto-slim sidebar for plain chats and code tabs (Projects already stay
+// minimized permanently via project-focus, set in renderFeed — this is a
+// separate, temporary state: reclaim sidebar width only while the user is
+// actively composing or a response is streaming in the conversation
+// currently on screen, then give the space back once things go idle).
+function updateSidebarSlim() {
+  const conv = current();
+  if (conv.projectId) { document.body.classList.remove("sidebar-slim"); return; }
+  const typing = document.activeElement === $("prompt") || $("prompt").value.trim().length > 0;
+  const streaming = _inFlight.has(conv.id);
+  document.body.classList.toggle("sidebar-slim", typing || streaming);
+}
+
 function renderFeed() {
   // Any open inline previews are about to be torn out with the rest of
   // #messages' innerHTML — drop their registry entries too, or each one leaks
@@ -1982,6 +1996,7 @@ function renderFeed() {
   syncComposerToggles();
   document.body.classList.toggle("code-mode", isCode(conv));
   document.body.classList.toggle("project-focus", !!conv.projectId);
+  updateSidebarSlim();
   const box = $("messages");
   if (!conv.messages.length) {
     const code = isCode(conv);
@@ -3921,6 +3936,7 @@ async function _streamGenerate(body, msg, convId) {
   const isActive = () => current().id === convId;
   const ctrl = new AbortController();
   _inFlight.set(convId, ctrl);
+  if (isActive()) updateSidebarSlim();
   try {
     const res = await fetch("/generate/stream", { method: "POST", headers: { "Content-Type": "application/json" },
       signal: ctrl.signal, body: JSON.stringify(body) });
@@ -3950,6 +3966,7 @@ async function _streamGenerate(body, msg, convId) {
     }
   } finally {
     _inFlight.delete(convId);
+    if (isActive()) updateSidebarSlim();
   }
 }
 // The Send/Stop button always reflects whichever conversation is currently
@@ -4076,7 +4093,9 @@ function syncSendLabel() {
 }
 
 // ---- chips, textarea autoresize, sidebar toggle, init ----
-$("prompt").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px"; });
+$("prompt").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px"; updateSidebarSlim(); });
+$("prompt").addEventListener("focus", updateSidebarSlim);
+$("prompt").addEventListener("blur", updateSidebarSlim);
 $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); } });
 $("new-chat").addEventListener("click", newChat);
 $("new-code").addEventListener("click", newCodeTab);
