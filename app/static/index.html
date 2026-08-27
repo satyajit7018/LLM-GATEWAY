@@ -466,6 +466,12 @@
     100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); }
   }
 
+  /* Curious: a file is being dragged over the composer, before it's even
+     dropped — eyes widen and she leans in slightly, like she's noticed
+     something coming. */
+  .pet.pet-curious .pet-eye { animation: none; transform: scale(1.2); }
+  .pet.pet-curious .pet-lift { transform: translateY(-1.5px) scale(1.03); }
+
   /* Live-metrics header badge (hit-rate ring) + popup — docked in the header
      like Tokens/Settings, not a floating draggable widget. */
   .fab { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer;
@@ -1717,12 +1723,17 @@ const _hasFiles = (dt) => dt && [...(dt.types || [])].includes("Files");
   if (!_hasFiles(e.dataTransfer)) return;
   if (e.target.closest && e.target.closest("#monaco-host")) return;   // let the editor keep its own drop
   e.preventDefault(); document.body.classList.add("dragging-files");
+  const pet = $("pet"); if (pet) pet.classList.add("pet-curious");
 }));
 ["dragleave", "dragend"].forEach(ev => document.addEventListener(ev, (e) => {
-  if (!e.relatedTarget) document.body.classList.remove("dragging-files");   // only when leaving the window
+  if (!e.relatedTarget) {   // only when leaving the window
+    document.body.classList.remove("dragging-files");
+    const pet = $("pet"); if (pet) pet.classList.remove("pet-curious");
+  }
 }));
 document.addEventListener("drop", (e) => {
   document.body.classList.remove("dragging-files");
+  { const pet = $("pet"); if (pet) pet.classList.remove("pet-curious"); }
   if (!e.dataTransfer || !e.dataTransfer.files.length) return;
   if (e.target.closest && e.target.closest("#monaco-host")) return;
   e.preventDefault();
