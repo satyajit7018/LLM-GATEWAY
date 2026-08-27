@@ -68,6 +68,7 @@ python -m scripts.demo              # exact-cache speedup
 python -m scripts.loadtest          # 3-config comparison table (Step 6)
 python -m scripts.resilience_check  # Step 5 primitives (no server needed)
 python -m scripts.report            # before/after table from the request log
+playwright install --with-deps chromium  # one-time, for the frontend smoke tests
 pytest                              # test suite (mock backend, no key needed)
 ```
 
@@ -118,7 +119,9 @@ deployment would — the laptop is never reachable from the open internet.
   `GET /log/summary` exposes the live aggregate.
 - **Tests + CI** — `pytest` suite ([tests/](tests)) covering cache, semantic
   cache, resilience primitives, and the API (including streaming), all on the
-  offline mock backend. [GitHub Actions](.github/workflows/ci.yml) runs it on
+  offline mock backend, plus a handful of Playwright frontend smoke tests
+  ([tests/test_frontend_smoke.py](tests/test_frontend_smoke.py)) against a
+  real live server. [GitHub Actions](.github/workflows/ci.yml) runs it on
   Python 3.9/3.11/3.12.
 - **Docker** — [Dockerfile](Dockerfile) + [docker-compose.yml](docker-compose.yml)
   run the gateway alongside a real Redis (append-only, persisted in a volume),

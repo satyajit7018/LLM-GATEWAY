@@ -20,4 +20,8 @@ cryptography==43.0.3         # encrypts users' bring-your-own provider API keys 
 
 # --- Dev / test ------------------------------------------------------------
 pytest==8.2.2
+# Frontend smoke tests (tests/test_frontend_smoke.py) — Python bindings, no
+# Node/npm needed. Requires a one-time `playwright install --with-deps chromium`
+# after pip install (see README / CI).
+pytest-playwright==0.5.1
 

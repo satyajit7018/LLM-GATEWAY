@@ -25,6 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Playwright's browser (for tests/test_frontend_smoke.py)
+        run: playwright install --with-deps chromium
+
       - name: Run tests (mock backend, no API key needed)
         env:
           LLM_BACKEND: mock
