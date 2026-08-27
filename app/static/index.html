@@ -1275,8 +1275,6 @@
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
 </style>
 <script>try { var _t = localStorage.getItem("llm-gateway-theme"); if (_t) document.documentElement.setAttribute("data-theme", _t); } catch (e) {}</script>
-<link rel="stylesheet" href="/vendor/monaco/vs/editor/editor.main.css">
-<script src="/vendor/monaco/vs/loader.js"></script>
 </head>
 <body>
 <div class="auth-gate" id="auth-gate" hidden>
@@ -2759,23 +2757,37 @@ function deleteFile(i) {
 // ---- Monaco editor (vendored at /vendor/monaco, fully offline) ----
 const ED = { editor: null, monaco: null, models: new WeakMap() };
 let _monacoReady = null;
+// Monaco's CSS + AMD loader are fetched here, on first real use, rather than
+// unconditionally in <head> — a pure-chat visitor who never opens a Code tab
+// used to pay for both (an extra render-blocking stylesheet + script) on
+// every single page load for a feature they never touch.
 function loadMonaco() {
   if (_monacoReady) return _monacoReady;
   _monacoReady = new Promise((resolve, reject) => {
-    if (!window.require) { reject(new Error("Monaco loader missing")); return; }
-    require.config({ paths: { vs: "/vendor/monaco/vs" } });
-    // Canonical AMD worker bootstrap: a tiny data-URL worker that sets baseUrl
-    // then imports workerMain.js, which in turn loads the per-language worker
-    // (ts / css / html / json) — this is what enables real IntelliSense.
-    window.MonacoEnvironment = {
-      getWorkerUrl: function () {
-        const base = location.origin + "/vendor/monaco/";
-        const src = "self.MonacoEnvironment={baseUrl:'" + base + "'};" +
-          "importScripts('" + base + "vs/base/worker/workerMain.js');";
-        return "data:text/javascript;charset=utf-8," + encodeURIComponent(src);
-      }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/vendor/monaco/vs/editor/editor.main.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "/vendor/monaco/vs/loader.js";
+    script.onerror = () => reject(new Error("Monaco loader failed to load"));
+    script.onload = () => {
+      if (!window.require) { reject(new Error("Monaco loader missing")); return; }
+      require.config({ paths: { vs: "/vendor/monaco/vs" } });
+      // Canonical AMD worker bootstrap: a tiny data-URL worker that sets baseUrl
+      // then imports workerMain.js, which in turn loads the per-language worker
+      // (ts / css / html / json) — this is what enables real IntelliSense.
+      window.MonacoEnvironment = {
+        getWorkerUrl: function () {
+          const base = location.origin + "/vendor/monaco/";
+          const src = "self.MonacoEnvironment={baseUrl:'" + base + "'};" +
+            "importScripts('" + base + "vs/base/worker/workerMain.js');";
+          return "data:text/javascript;charset=utf-8," + encodeURIComponent(src);
+        }
+      };
+      require(["vs/editor/editor.main"], () => resolve(window.monaco));
     };
-    require(["vs/editor/editor.main"], () => resolve(window.monaco));
+    document.head.appendChild(script);
   });
   return _monacoReady;
 }

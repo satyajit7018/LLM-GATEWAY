@@ -90,6 +90,10 @@ def _connect():
             user_id INTEGER,
             conv_id TEXT,
             created_at REAL NOT NULL)""")
+        # sessions' own primary key is token_hash (one row per login); every
+        # sign-out-everywhere, password change, and account deletion instead
+        # looks sessions up by user_id, which was an unindexed full scan.
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
         _conn.commit()
     return _conn
 

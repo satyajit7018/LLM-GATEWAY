@@ -39,6 +39,11 @@ def _connect():
         cols = {row[1] for row in _conn.execute("PRAGMA table_info(requests)")}
         if "user_id" not in cols:
             _conn.execute("ALTER TABLE requests ADD COLUMN user_id INTEGER")
+        # This table has no primary key and grows by one row per /generate
+        # call forever — without this, usage_by_model(user_id=...) (called on
+        # every page load) was a full table scan that only gets slower as
+        # history accumulates.
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_user ON requests(user_id)")
         _conn.commit()
     return _conn
 
