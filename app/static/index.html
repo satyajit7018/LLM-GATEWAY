@@ -350,42 +350,62 @@
   .jump-latest.show { display: inline-flex; animation: rise .2s ease; }
   .jump-latest:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ---- pet: a small idle companion, reacts to mood via data-mood ---- */
-  .pet { position: absolute; right: 20px; bottom: 92px; z-index: 16; width: 44px; height: 44px;
-    cursor: default; filter: drop-shadow(0 4px 10px rgba(0,0,0,.18)); animation: pet-bob 3.2s ease-in-out infinite; }
+  /* ---- pet: a small hovering companion — sleek pale body, no limbs, all
+     personality carried in the eyes (a nod to EVE's design language: a
+     smooth capsule that floats, with expression coming entirely from two
+     glowing eyes rather than a face full of features). Reacts to mood via
+     data-mood. ---- */
+  .pet { position: absolute; right: 18px; bottom: 88px; z-index: 16; width: 50px; height: 55px;
+    cursor: default; animation: pet-hover 3.6s ease-in-out infinite; }
   .pet svg { width: 100%; height: 100%; overflow: visible; }
-  .pet-body { fill: var(--accent); transition: fill .3s ease; }
-  .pet-eye { fill: #fff; transform-box: fill-box; transform-origin: center; animation: pet-blink 4.5s ease-in-out infinite; }
+  .pet svg * { transform-box: fill-box; transform-origin: center; }
+  .pet-body {
+    fill: #f4f6fb; stroke: var(--accent); stroke-width: 1.6; transition: stroke .3s ease;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,.22));
+  }
+  .pet-glow {
+    fill: var(--accent); opacity: .28; filter: blur(4px); transition: fill .3s ease;
+    animation: pet-thruster 3.6s ease-in-out infinite;
+  }
+  .pet-eye {
+    fill: var(--accent); transition: fill .3s ease;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 70%, transparent));
+    animation: pet-blink 4.5s ease-in-out infinite;
+  }
   .pet-eye-r { animation-delay: .06s; }
-  .pet-mouth { stroke: #fff; stroke-width: 2.4; opacity: .9; }
-  @keyframes pet-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes pet-hover { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-1.5deg); } }
+  @keyframes pet-thruster { 0%, 100% { opacity: .18; transform: scaleX(1); } 50% { opacity: .32; transform: scaleX(.85); } }
   @keyframes pet-blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.12); } }
 
-  /* Thinking: a response is streaming — quicker bob, eyes track upward as
-     if considering something, plus a soft pulsing ring. */
-  .pet[data-mood="thinking"] { animation: pet-bob 1.1s ease-in-out infinite; }
-  .pet[data-mood="thinking"] .pet-eye { animation: none; transform: translateY(-1.5px); }
+  /* Thinking: a response is streaming — eyes narrow in focus, hover quickens,
+     a soft scanner ring pulses outward (an EVE-style active-scan read). */
+  .pet[data-mood="thinking"] { animation: pet-hover 1.3s ease-in-out infinite; }
+  .pet[data-mood="thinking"] .pet-eye { animation: none; transform: scaleY(.55); }
   .pet[data-mood="thinking"]::after {
-    content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accent);
+    content: ""; position: absolute; left: 50%; top: 54%; width: 46px; height: 38px;
+    transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid var(--accent);
     opacity: .5; animation: pet-ring 1.1s ease-out infinite;
   }
-  @keyframes pet-ring { 0% { transform: scale(.85); opacity: .55; } 100% { transform: scale(1.35); opacity: 0; } }
+  @keyframes pet-ring { 0% { transform: translate(-50%, -50%) scale(.75); opacity: .55; } 100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; } }
 
   /* Happy: a cache hit just landed — instant answer, no real call needed. */
   .pet[data-mood="happy"] { animation: pet-happy .7s ease; }
-  .pet[data-mood="happy"] .pet-body { fill: var(--hit); }
-  .pet[data-mood="happy"] .pet-mouth { d: path("M22 39 Q32 48 42 39"); }
-  @keyframes pet-happy { 0% { transform: scale(1); } 35% { transform: scale(1.22) translateY(-6px); } 100% { transform: scale(1); } }
+  .pet[data-mood="happy"] .pet-body { stroke: var(--hit); }
+  .pet[data-mood="happy"] .pet-glow { fill: var(--hit); }
+  .pet[data-mood="happy"] .pet-eye { animation: none; fill: var(--hit); transform: scale(1.15) translateY(-1px); }
+  @keyframes pet-happy { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.12) translateY(-9px); } 100% { transform: scale(1) translateY(0); } }
 
-  /* Sad: the last request failed. */
-  .pet[data-mood="sad"] { animation: pet-shake .5s ease; }
-  .pet[data-mood="sad"] .pet-body { fill: var(--miss); }
-  .pet[data-mood="sad"] .pet-eye { animation: none; transform: scaleY(.55); }
-  .pet[data-mood="sad"] .pet-mouth { d: path("M23 43 Q32 37 41 43"); }
-  @keyframes pet-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  /* Sad: the last request failed — eyes droop, body sinks and dims. */
+  .pet[data-mood="sad"] { animation: pet-slump .5s ease; }
+  .pet[data-mood="sad"] .pet-body { stroke: var(--miss); }
+  .pet[data-mood="sad"] .pet-glow { fill: var(--miss); opacity: .15; }
+  .pet[data-mood="sad"] .pet-eye { animation: none; fill: var(--miss); transform: scaleY(.5) translateY(2px); }
+  .pet[data-mood="sad"] .pet-eye-l { transform: scaleY(.5) translateY(2px) rotate(-6deg); }
+  .pet[data-mood="sad"] .pet-eye-r { transform: scaleY(.5) translateY(2px) rotate(6deg); }
+  @keyframes pet-slump { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(3px) rotate(3deg); } }
 
   @media (prefers-reduced-motion: reduce) {
-    .pet, .pet-eye, .pet[data-mood]::after { animation: none !important; }
+    .pet, .pet *, .pet[data-mood]::after { animation: none !important; }
   }
   @media (max-width: 760px) { .pet { display: none; } }
 
@@ -1250,11 +1270,13 @@
          with some personality. Purely decorative: nothing here is the only
          place a piece of state is visible. -->
     <div class="pet" id="pet" data-mood="idle" title="Idle">
-      <svg viewBox="0 0 64 64">
-        <circle class="pet-body" cx="32" cy="32" r="25"/>
-        <circle class="pet-eye pet-eye-l" cx="23" cy="30" r="3.6"/>
-        <circle class="pet-eye pet-eye-r" cx="41" cy="30" r="3.6"/>
-        <path class="pet-mouth" d="M23 40 Q32 46 41 40" fill="none" stroke-linecap="round"/>
+      <svg viewBox="0 0 64 70">
+        <ellipse class="pet-glow" cx="32" cy="60" rx="16" ry="4"/>
+        <ellipse class="pet-body" cx="32" cy="30" rx="23" ry="19"/>
+        <g class="pet-eyes">
+          <ellipse class="pet-eye pet-eye-l" cx="23" cy="29" rx="5.5" ry="7"/>
+          <ellipse class="pet-eye pet-eye-r" cx="41" cy="29" rx="5.5" ry="7"/>
+        </g>
       </svg>
     </div>
     <div class="composer-dock">
