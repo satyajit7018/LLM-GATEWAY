@@ -3989,6 +3989,19 @@ function classifyErr(status, detail) {
   if (status === 422) return { retryable: false, friendly: "Nothing to send", detail };
   return { retryable: false, friendly: detail || "Something went wrong", detail };
 }
+// ---- pet mood ----
+// Purely decorative reflection of state the UI already surfaces elsewhere
+// (the streaming spinner, the "MISS/HIT · live call" badge, the error
+// banner) — nothing is only visible through the pet.
+let _petRevertTimer = null;
+function setPetMood(mood, autoRevertMs) {
+  const pet = $("pet"); if (!pet) return;
+  pet.dataset.mood = mood;
+  pet.title = mood === "thinking" ? "Thinking…" : mood === "happy" ? "Cache hit — instant, no call needed"
+    : mood === "sad" ? "That one didn't go through" : "Idle";
+  clearTimeout(_petRevertTimer);
+  if (autoRevertMs) _petRevertTimer = setTimeout(() => { pet.dataset.mood = "idle"; pet.title = "Idle"; }, autoRevertMs);
+}
 // One streaming attempt; fills `msg` as tokens arrive. Throws an Error carrying
 // `.status` (HTTP code, or 0 for network/mid-stream) so the caller can classify.
 // `convId` lets every DOM-touching line stay silent unless this stream's
@@ -3998,7 +4011,7 @@ async function _streamGenerate(body, msg, convId) {
   const isActive = () => current().id === convId;
   const ctrl = new AbortController();
   _inFlight.set(convId, ctrl);
-  if (isActive()) updateSidebarSlim();
+  if (isActive()) { updateSidebarSlim(); setPetMood("thinking"); }
   try {
     const res = await fetch("/generate/stream", { method: "POST", headers: { "Content-Type": "application/json" },
       signal: ctrl.signal, body: JSON.stringify(body) });
