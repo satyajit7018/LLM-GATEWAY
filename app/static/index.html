@@ -572,7 +572,7 @@
   /* Lying down, not standing — the body rotates onto its side and settles
      down onto the pillow/blanket instead of just closing its eyes upright. */
   .pet[data-routine="sleep"] .pet-lift {
-    transform: translate(-3px, 21px) rotate(82deg);
+    transform: translate(-8px, 24px) rotate(90deg);
     transition: transform .6s ease;
   }
   .pet[data-routine="sleep"] .pet-arm { opacity: .6; transform: scaleY(.55); }
@@ -4369,15 +4369,20 @@ function _petPatrolStart() {
   const pet = $("pet"); if (!pet) return;
   const dock = pet.closest(".composer-dock"); if (!dock) return;
   if (_petPatrolHome === null) _petPatrolHome = getComputedStyle(pet).right;
-  pet.style.transition = "right 5s ease-in-out";
-  let goingFar = true;
+  const homeNum = parseFloat(_petPatrolHome) || 20;
+  // Each leg picks a fresh random point along the line rather than always
+  // pacing between the same two ends — some legs short hops, some go
+  // nearly the full distance, so it doesn't read as a mechanical back-and-
+  // forth. Still fully bounded between "home" and the far edge.
   const step = () => {
     if (pet.dataset.routine !== "wander") return;   // phase already moved on — _petPatrolStop cleans up position
     const petW = pet.offsetWidth || 62;
-    const farRight = Math.max(20, dock.clientWidth - petW - 20);
-    pet.style.right = goingFar ? farRight + "px" : _petPatrolHome;
-    goingFar = !goingFar;
-    _petPatrolTimer = setTimeout(step, 5000);
+    const maxRight = Math.max(homeNum, dock.clientWidth - petW - 20);
+    const target = homeNum + Math.random() * (maxRight - homeNum);
+    const duration = 2.5 + Math.random() * 3.5;   // 2.5–6s, varies leg to leg
+    pet.style.transition = `right ${duration.toFixed(2)}s ease-in-out`;
+    pet.style.right = target.toFixed(1) + "px";
+    _petPatrolTimer = setTimeout(step, duration * 1000);
   };
   step();
 }
