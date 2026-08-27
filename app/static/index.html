@@ -4036,6 +4036,7 @@ async function _streamGenerate(body, msg, convId) {
           msg.tokens = obj.tokens; msg.model = obj.model; msg.latency_ms = obj.latency_ms;
           if (obj.text != null) msg.a = obj.text;
           if (!obj.cached) { recordUsage(body.model, obj.tokens); loadFreeQuota(); }
+          if (isActive()) obj.cached ? setPetMood("happy", 900) : setPetMood("idle");
         }
       }
     }
