@@ -448,6 +448,24 @@
     100% { opacity: 0; transform: translateY(-14px) scale(1); }
   }
 
+  /* Asleep: no cursor movement for a couple of minutes — eyes close, the
+     hover slows to a slow breathing drift, and a couple of "z"s drift up.
+     Only ever applied while idle (see _petIdleCheck); waking is instant on
+     any pointer movement or click. */
+  .pet.pet-asleep { animation-duration: 7s; }
+  .pet.pet-asleep .pet-eye { animation: none; transform: scaleY(.08); }
+  .pet.pet-asleep .pet-glow { opacity: .12; }
+  .pet.pet-asleep::before, .pet.pet-asleep::after {
+    content: "z"; position: absolute; top: -2px; right: 8px; font: 700 12px/1 sans-serif;
+    color: var(--accent); opacity: 0; pointer-events: none; animation: pet-zzz 2.8s ease-in infinite;
+  }
+  .pet.pet-asleep::after { right: 0; top: -8px; font-size: 8px; animation-delay: 1s; }
+  @keyframes pet-zzz {
+    0% { opacity: 0; transform: translate(0, 0) scale(.8); }
+    20% { opacity: .85; }
+    100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); }
+  }
+
   /* Live-metrics header badge (hit-rate ring) + popup — docked in the header
      like Tokens/Settings, not a floating draggable widget. */
   .fab { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer;
@@ -4083,7 +4101,25 @@ let _petCur = { eyeX: 0, eyeY: 0, rigX: 0, rigY: 0 };
 let _petPokeCount = 0;
 const _clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+// Falls asleep after a couple of minutes with no cursor movement at all —
+// checked on a cheap 2s heartbeat, not the per-frame tracking loop, so an
+// idle pet costs nothing beyond one tiny interval tick. Only while idle:
+// a busy/upset pet doesn't doze off mid-something.
+const PET_SLEEP_AFTER_MS = 120000;
+let _petLastMoveAt = 0;
+function _petWake() {
+  _petLastMoveAt = performance.now();
+  const pet = $("pet");
+  if (pet && pet.classList.contains("pet-asleep")) pet.classList.remove("pet-asleep");
+}
+function _petIdleCheck() {
+  const pet = $("pet"); if (!pet) return;
+  const asleep = performance.now() - _petLastMoveAt > PET_SLEEP_AFTER_MS;
+  pet.classList.toggle("pet-asleep", asleep && (pet.dataset.mood || "idle") === "idle");
+}
+
 function _petPointerMove(e) {
+  _petWake();
   _petPtr = { x: e.clientX, y: e.clientY };
   _petDirty = true;
   if (!_petRaf) _petRaf = requestAnimationFrame(_petFrame);
@@ -4135,6 +4171,7 @@ function _petFrame() {
 }
 function _petPoke() {
   const pet = $("pet"); if (!pet || pet.classList.contains("pet-poke")) return;
+  _petWake();
   pet.classList.add("pet-poke");
   setTimeout(() => pet.classList.remove("pet-poke"), 640);
   _petPokeCount++;
@@ -4146,9 +4183,11 @@ function _petPoke() {
 function initPet() {
   const pet = $("pet"); if (!pet) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches || matchMedia("(pointer: coarse)").matches) return;
+  _petLastMoveAt = performance.now();
   window.addEventListener("pointermove", _petPointerMove, { passive: true });
   window.addEventListener("resize", () => { _petRect = null; });
   pet.addEventListener("click", _petPoke);
+  setInterval(_petIdleCheck, 2000);
 }
 // One streaming attempt; fills `msg` as tokens arrive. Throws an Error carrying
 // `.status` (HTTP code, or 0 for network/mid-stream) so the caller can classify.
