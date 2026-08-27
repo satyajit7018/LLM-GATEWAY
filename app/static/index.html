@@ -4180,7 +4180,7 @@ function _petFrame() {
   // offset above, never written into _petCur, so it can't fight the easing.
   const idleMs = now - _petLastMoveAt;
   let wanderX = 0, wanderY = 0, wandering = false;
-  if (mood === "idle" && idleMs > 4000 && idleMs < PET_SLEEP_AFTER_MS) {
+  if (mood === "idle" && idleMs > 1200 && idleMs < PET_SLEEP_AFTER_MS) {
     wandering = true;
     wanderX = Math.sin(now / 2200) * 3;
     wanderY = Math.cos(now / 3100) * 1.4;
@@ -4252,6 +4252,13 @@ function initPet() {
   pet.addEventListener("click", _petPoke);
   pet.addEventListener("dblclick", _petSpin);
   setInterval(_petIdleCheck, 2000);
+  // Without this, the idle-wander drift in _petFrame only ever plays if the
+  // cursor-tracking rAF loop happens to still be alive at the exact moment
+  // the cursor crosses the wander threshold — since the loop stops itself
+  // once settled, a still cursor almost never actually catches it. Kicking
+  // it on a timer keeps the pet "walking" on a reliable cadence instead of
+  // by accident.
+  setInterval(_petTrackKick, 900);
   // Naps the instant you switch away to another tab — regardless of mood,
   // since nothing here is worth animating for an audience of no one — and
   // wakes immediately on return.
