@@ -4123,7 +4123,7 @@ $("form").addEventListener("submit", async (e) => {
       await _streamGenerate(body, msg, conv.id);
       break;   // success
     } catch (err) {
-      if (err.name === "AbortError") { if (!msg.a) msg.a = "_(stopped)_"; msg.stopped = true; break; }
+      if (err.name === "AbortError") { if (!msg.a) msg.a = "_(stopped)_"; msg.stopped = true; if (isActive()) setPetMood("idle"); break; }
       const c = classifyErr(err.status || 0, err.message);
       if (c.retryable && attempt < MAX_RETRIES) {   // transient — auto-retry with a visible countdown
         for (let s = attempt + 1; s >= 1; s--) {   // 1s, then 2s
@@ -4135,6 +4135,7 @@ $("form").addEventListener("submit", async (e) => {
       }
       msg.error = c.friendly; msg.errorDetail = c.detail && c.detail !== c.friendly ? c.detail : null;
       msg.retryable = c.retryable; msg.retrying = null;
+      if (isActive()) setPetMood("sad", 1200);
       break;
     }
   }
