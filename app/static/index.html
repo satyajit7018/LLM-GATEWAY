@@ -78,7 +78,8 @@
     border-bottom: 1px solid var(--border); background: var(--panel);
     box-shadow: inset 0 1px 0 var(--glass-hi);
   }
-  .menu-btn { display: none; background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; }
+  .menu-btn { display: none; background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 6px; }
+  .menu-btn:hover { color: var(--accent); }
   .logo { width: 30px; height: 30px; border-radius: 10px; flex: none;
     background: var(--accent);
     display: grid; place-items: center; }
@@ -257,8 +258,11 @@
      so there's nothing extra to minimize there. */
   @media (min-width: 761px) {
     .body { transition: grid-template-columns .18s ease; }
+    /* Always reachable now, not just once already minimized — this is the
+       manual "physical" collapse control, alongside the automatic
+       typing/streaming behavior (see updateSidebarSlim). */
+    .menu-btn { display: block; }
     body.project-focus .body, body.sidebar-slim .body { grid-template-columns: 56px 1fr; }
-    body.project-focus .menu-btn, body.sidebar-slim .menu-btn { display: block; }
     body.project-focus .side-search, body.sidebar-slim .side-search,
     body.project-focus .side-scroll, body.sidebar-slim .side-scroll { display: none; }
     body.project-focus .side-actions, body.sidebar-slim .side-actions { flex-direction: column; margin: 14px 6px; gap: 6px; }
@@ -1060,7 +1064,7 @@
   </div>
 </div>
 <header>
-  <button class="menu-btn" id="menu-btn" aria-label="menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  <button class="menu-btn" id="menu-btn" aria-label="menu" title="Collapse/expand sidebar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   <div class="logo"><svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><g class="loop"><circle cx="9" cy="12" r="4.3"/><circle cx="15" cy="12" r="4.3"/></g><line class="p1" x1="4.3" y1="12" x2="2" y2="12"/><line class="p2" x1="19.7" y1="12" x2="22" y2="12"/><line class="p3" x1="9" y1="7.7" x2="9" y2="5.2"/><line class="p4" x1="15" y1="16.3" x2="15" y2="18.8"/></svg></div>
   <div class="brand"><h1>LLM Gateway</h1><p>semantic caching · vision · files · resilience</p></div>
   <div class="badges">
@@ -1966,17 +1970,19 @@ function renderUsageRecap() {
   </div>`;
 }
 
-// Auto-slim sidebar for plain chats and code tabs (Projects already stay
-// minimized permanently via project-focus, set in renderFeed — this is a
-// separate, temporary state: reclaim sidebar width only while the user is
-// actively composing or a response is streaming in the conversation
-// currently on screen, then give the space back once things go idle).
+// Slim sidebar for plain chats and code tabs (Projects already stay
+// minimized permanently via project-focus, set in renderFeed) — reclaims
+// sidebar width three ways: automatically while composing or a response is
+// streaming, or "pinned" indefinitely via the header's menu button (the
+// manual, physical option, persisted across reloads).
+const SIDEBAR_PIN_LS = "llm-gateway-sidebar-pinned";
+let _sidebarPinned = localStorage.getItem(SIDEBAR_PIN_LS) === "1";
 function updateSidebarSlim() {
   const conv = current();
   if (conv.projectId) { document.body.classList.remove("sidebar-slim"); return; }
   const typing = document.activeElement === $("prompt") || $("prompt").value.trim().length > 0;
   const streaming = _inFlight.has(conv.id);
-  document.body.classList.toggle("sidebar-slim", typing || streaming);
+  document.body.classList.toggle("sidebar-slim", _sidebarPinned || typing || streaming);
 }
 
 function renderFeed() {
@@ -4101,7 +4107,23 @@ $("new-chat").addEventListener("click", newChat);
 $("new-code").addEventListener("click", newCodeTab);
 $("chat-search").addEventListener("input", renderSidebar);
 $("chat-search").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.target.value = ""; renderSidebar(); } });
-$("menu-btn").addEventListener("click", () => { $("sidebar").classList.toggle("open"); $("backdrop").classList.toggle("show"); });
+// Dual-purpose by state: from a full sidebar, pins it minimized (the manual
+// counterpart to the automatic typing/streaming collapse); from an already-
+// minimized one, unpins if the pin was the only reason it's minimized,
+// otherwise just peeks the full list without disturbing whatever's actually
+// keeping it minimized (typing, streaming, or a Project).
+$("menu-btn").addEventListener("click", () => {
+  const conv = current();
+  const slim = document.body.classList.contains("sidebar-slim") || document.body.classList.contains("project-focus");
+  if (!slim) { _sidebarPinned = true; localStorage.setItem(SIDEBAR_PIN_LS, "1"); updateSidebarSlim(); return; }
+  const typing = document.activeElement === $("prompt") || $("prompt").value.trim().length > 0;
+  const streaming = _inFlight.has(conv.id);
+  if (_sidebarPinned && !typing && !streaming && !conv.projectId) {
+    _sidebarPinned = false; localStorage.setItem(SIDEBAR_PIN_LS, "0"); updateSidebarSlim();
+  } else {
+    $("sidebar").classList.toggle("open"); $("backdrop").classList.toggle("show");
+  }
+});
 $("backdrop").addEventListener("click", closeSidebar);
 function closeSidebar() { $("sidebar").classList.remove("open"); $("backdrop").classList.remove("show"); }
 const esc = (s) => (s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
