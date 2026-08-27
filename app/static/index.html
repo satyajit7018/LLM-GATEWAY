@@ -363,9 +363,15 @@
   .pet svg { width: 100%; height: 100%; overflow: visible; }
   .pet svg * { transform-box: fill-box; transform-origin: center; }
   .pet-rig, .pet-lift { transform-box: view-box; transform-origin: 36px 40px; }
-  /* Written every frame from JS (_petFrame) while the cursor moves — no CSS
-     transition here, a rAF loop already eases these toward their target. */
-  .pet-rig { transform: translate(var(--rig-x, 0px), var(--rig-y, 0px)); }
+  /* --rig-x/--rig-y are written every frame from JS (_petFrame) while the
+     cursor moves — no CSS transition on those, the rAF loop already eases
+     them toward their target. --near-x/--near-y/--near-scale are the only
+     part of this rule a CSS class ever sets directly (.pet-near/.pet-curious
+     below); .pet.pet-near/.pet-curious add a short transition for just that
+     jump without disturbing the JS-driven easing. */
+  .pet-rig {
+    transform: translate(calc(var(--rig-x, 0px) + var(--near-x, 0px)), calc(var(--rig-y, 0px) + var(--near-y, 0px))) scale(var(--near-scale, 1));
+  }
   .pet-eye-wrap { transform: translate(var(--eye-x, 0px), var(--eye-y, 0px)); }
   .pet-body {
     fill: url(#pet-body-grad); stroke: var(--accent); stroke-width: 1.2; transition: stroke .3s ease;
@@ -425,12 +431,26 @@
   @media (max-width: 760px), (hover: none), (pointer: coarse) { .pet { display: none; } }
 
   /* Hover-proximity perk: the cursor got close (see _petFrame's hysteresis) —
-     a little lift and a brighter glow, like she noticed. */
-  .pet.pet-near .pet-lift { transform: translateY(-2.5px) scale(1.06); }
+     a little lift and a brighter glow, like she noticed. The lift lives on
+     .pet-rig (see its --near-x/--near-y/--near-scale vars below) rather
+     than .pet-lift directly, so it still shows even while an idle-routine
+     phase (cook/eat/work/wander) is actively animating .pet-lift — a plain
+     transform there would otherwise be silently overridden by the phase's
+     animation regardless of specificity. Same story for the arms' rotate/
+     translateY, blended into each phase's own keyframes via --arm-near-*. */
   .pet.pet-near .pet-arm-l { transform: translateX(-1.6px); }
   .pet.pet-near .pet-arm-r { transform: translateX(1.6px); }
   .pet.pet-near .pet-eye { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 85%, transparent)); }
-  .pet.pet-near .pet-glow { opacity: .38; }
+  /* .pet-glow has its own always-on pulse (pet-thruster) driving `opacity` —
+     a plain `opacity` override here would never win against that active
+     animation, so brightening it means swapping in a boosted version of the
+     same animation instead. (This one predates the routine work — just
+     caught in the same pass.) */
+  .pet.pet-near .pet-glow { animation: pet-thruster-near 3.6s ease-in-out infinite; }
+  @keyframes pet-thruster-near { 0%, 100% { opacity: .3; transform: scaleX(1); } 50% { opacity: .5; transform: scaleX(.85); } }
+  .pet.pet-near .pet-rig, .pet.pet-curious .pet-rig { transition: transform .18s ease-out; }
+  .pet.pet-near .pet-rig { --near-y: -2.5px; --near-scale: 1.06; }
+  .pet.pet-near, .pet.pet-curious { --arm-near-rot: 6deg; --arm-near-y: -1.6px; }
 
   /* Poke: clicked — a quick squash-and-stretch bounce (never touches mood). */
   .pet.pet-poke .pet-lift { animation: pet-poke .62s cubic-bezier(.34,1.28,.64,1); }
@@ -461,7 +481,11 @@
      any pointer movement or click. */
   .pet.pet-asleep { animation-duration: 7s; }
   .pet.pet-asleep .pet-eye { animation: none; transform: scaleY(.08); }
-  .pet.pet-asleep .pet-glow { opacity: .12; }
+  /* Same fix as pet-near below: a plain `opacity` can't win against
+     .pet-glow's own always-on pet-thruster animation, so dimming it means
+     swapping in a dimmed variant of that animation. */
+  .pet.pet-asleep .pet-glow { animation: pet-thruster-asleep 7s ease-in-out infinite; }
+  @keyframes pet-thruster-asleep { 0%, 100% { opacity: .07; transform: scaleX(1); } 50% { opacity: .14; transform: scaleX(.85); } }
   .pet.pet-asleep::before, .pet.pet-asleep::after {
     content: "z"; position: absolute; top: -2px; right: 8px; font: 700 12px/1 sans-serif;
     color: var(--accent); opacity: 0; pointer-events: none; animation: pet-zzz 2.8s ease-in infinite;
@@ -475,9 +499,10 @@
 
   /* Curious: a file is being dragged over the composer, before it's even
      dropped — eyes widen and she leans in slightly, like she's noticed
-     something coming. */
+     something coming. Lean lives on .pet-rig (see its vars above), same
+     reasoning as pet-near — stays visible even mid routine-phase. */
   .pet.pet-curious .pet-eye { animation: none; transform: scale(1.2); }
-  .pet.pet-curious .pet-lift { transform: translateY(-1.5px) scale(1.03); }
+  .pet.pet-curious .pet-rig { --near-y: -1.5px; --near-scale: 1.03; }
 
   /* Idle routine: after a longer stretch of real inactivity than the plain
      wander drift needs, she goes off and does her own thing — cooks, works
@@ -515,7 +540,10 @@
      Pivots from each element's own fill-box center (see the blanket
      `.pet svg *` rule). */
   .pet[data-routine="cook"] .pet-arm-l { animation: pet-stir-arm .8s ease-in-out infinite; }
-  @keyframes pet-stir-arm { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(24deg); } }
+  @keyframes pet-stir-arm {
+    0%, 100% { transform: rotate(calc(-20deg + var(--arm-near-rot, 0deg))); }
+    50% { transform: rotate(calc(24deg + var(--arm-near-rot, 0deg))); }
+  }
   .pet[data-routine="cook"] .pet-pan, .pet[data-routine="cook"] .pet-pan-handle {
     animation: pet-stir-pan .8s ease-in-out infinite;
   }
@@ -536,7 +564,10 @@
      instead of just resting at her sides while the screen does the work. */
   .pet[data-routine="work"] .pet-arm-l { animation: pet-type-arm .42s ease-in-out infinite; }
   .pet[data-routine="work"] .pet-arm-r { animation: pet-type-arm .42s ease-in-out infinite .21s; }
-  @keyframes pet-type-arm { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.4px); } }
+  @keyframes pet-type-arm {
+    0%, 100% { transform: translateY(var(--arm-near-y, 0px)); }
+    50% { transform: translateY(calc(-2.4px + var(--arm-near-y, 0px))); }
+  }
   /* Eyes drop to the screen instead of tracking the cursor — this rule's
      extra specificity beats the plain .pet-eye-wrap rule outright. */
   .pet[data-routine="work"] .pet-eye-wrap { transform: translateY(2.2px) scale(1, .82); }
@@ -557,7 +588,10 @@
   }
   .pet[data-routine="eat"] .pet-arm-l { animation: pet-chew-arm .38s ease-in-out infinite; }
   .pet[data-routine="eat"] .pet-arm-r { animation: pet-chew-arm .38s ease-in-out infinite; }
-  @keyframes pet-chew-arm { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(1.5px); } }
+  @keyframes pet-chew-arm {
+    0%, 100% { transform: translateY(var(--arm-near-y, 0px)); }
+    50% { transform: translateY(calc(1.5px + var(--arm-near-y, 0px))); }
+  }
 
   /* Wander: laptop's put away (it's just not [data-routine="work"] anymore),
      a bigger float-bob than the plain idle hover, while _petPatrolStart
@@ -4364,12 +4398,14 @@ function _petRoutineTick() {
 // which pet-hover/mood/poke/spin already own) so it composes cleanly with
 // everything else. Range is measured live off the actual composer-dock
 // width so it can't wander past either edge regardless of sidebar state. ----
-let _petPatrolTimer = null, _petPatrolHome = null;
+let _petPatrolTimer = null;
 function _petPatrolStart() {
   const pet = $("pet"); if (!pet) return;
   const dock = pet.closest(".composer-dock"); if (!dock) return;
-  if (_petPatrolHome === null) _petPatrolHome = getComputedStyle(pet).right;
-  const homeNum = parseFloat(_petPatrolHome) || 20;
+  // Measured fresh every time (never cached) — the "home" position depends
+  // on the responsive breakpoint (.pet's default `right` differs under
+  // 900px), so caching it once would go stale after a resize.
+  const homeNum = parseFloat(getComputedStyle(pet).right) || 20;
   // Each leg picks a fresh random point along the line rather than always
   // pacing between the same two ends — some legs short hops, some go
   // nearly the full distance, so it doesn't read as a mechanical back-and-
@@ -4389,8 +4425,10 @@ function _petPatrolStart() {
 function _petPatrolStop() {
   clearTimeout(_petPatrolTimer);
   _petPatrolTimer = null;
-  const pet = $("pet"); if (!pet || _petPatrolHome === null) return;
-  pet.style.right = _petPatrolHome;
+  const pet = $("pet"); if (!pet) return;
+  // Removed, not reset to a cached value — lets the responsive stylesheet
+  // rule for the current breakpoint take back over cleanly.
+  pet.style.removeProperty("right");
 }
 
 function _petPointerMove(e) {
@@ -4464,9 +4502,12 @@ function _petPoke() {
   const wasSleepingInRoutine = _petRoutineActive && _petRoutinePhaseIdx ===
     PET_ROUTINE_PHASES.findIndex(p => p.name === "sleep") && pet.dataset.routine === "sleep";
   _petWake();   // cancels the routine, if any, as a normal interrupt
-  if (wasSleepingInRoutine) _petRoutineStart(0);   // ...but poking her awake jumps straight back to "cook"
   pet.classList.add("pet-poke");
   setTimeout(() => pet.classList.remove("pet-poke"), 640);
+  // Delayed rather than immediate: cook's own animation would otherwise start
+  // fighting the poke bounce for .pet-lift's transform in the same instant
+  // and silently win, making the bounce invisible right when it matters most.
+  if (wasSleepingInRoutine) setTimeout(() => _petRoutineStart(0), 640);
   _petPokeCount++;
   if (_petPokeCount % 5 === 0 && pet.dataset.mood === "idle") {
     pet.classList.add("pet-heart-go");
