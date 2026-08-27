@@ -620,10 +620,12 @@
   }
 
   .pet[data-routine="sleep"] .pet-prop-sleep { opacity: 1; }
-  /* Lying down, not standing — the body rotates onto its side and settles
-     down onto the pillow/blanket instead of just closing its eyes upright. */
+  /* Lying flat, not standing — rotated onto its side AND scaled down a
+     touch so its silhouette actually rests against the bed/blanket instead
+     of towering over the small prop (checked against their real rendered
+     boxes, not eyeballed). */
   .pet[data-routine="sleep"] .pet-lift {
-    transform: translate(-8px, 24px) rotate(90deg);
+    transform: translate(-8px, 20px) rotate(90deg) scale(.8);
     transition: transform .6s ease;
   }
   .pet[data-routine="sleep"] .pet-arm { opacity: .6; transform: scaleY(.55); }
