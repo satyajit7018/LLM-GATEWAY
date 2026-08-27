@@ -432,6 +432,22 @@
   .pet.pet-near .pet-eye { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 85%, transparent)); }
   .pet.pet-near .pet-glow { opacity: .38; }
 
+  /* Poke: clicked — a quick squash-and-stretch bounce (never touches mood). */
+  .pet.pet-poke .pet-lift { animation: pet-poke .62s cubic-bezier(.34,1.28,.64,1); }
+  @keyframes pet-poke {
+    0% { transform: none; }
+    25% { transform: translateY(2px) scaleX(1.18) scaleY(.86); }
+    55% { transform: translateY(-7px) scaleX(.92) scaleY(1.12); }
+    100% { transform: none; }
+  }
+  /* Every 5th poke while idle, for whoever's paying attention. */
+  .pet.pet-heart-go .pet-heart { animation: pet-heart-float 1.1s ease-out; }
+  @keyframes pet-heart-float {
+    0% { opacity: 0; transform: translateY(0) scale(.6); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-14px) scale(1); }
+  }
+
   /* Live-metrics header badge (hit-rate ring) + popup — docked in the header
      like Tokens/Settings, not a floating draggable widget. */
   .fab { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer;
