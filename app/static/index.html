@@ -350,6 +350,45 @@
   .jump-latest.show { display: inline-flex; animation: rise .2s ease; }
   .jump-latest:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* ---- pet: a small idle companion, reacts to mood via data-mood ---- */
+  .pet { position: absolute; right: 20px; bottom: 92px; z-index: 16; width: 44px; height: 44px;
+    cursor: default; filter: drop-shadow(0 4px 10px rgba(0,0,0,.18)); animation: pet-bob 3.2s ease-in-out infinite; }
+  .pet svg { width: 100%; height: 100%; overflow: visible; }
+  .pet-body { fill: var(--accent); transition: fill .3s ease; }
+  .pet-eye { fill: #fff; transform-box: fill-box; transform-origin: center; animation: pet-blink 4.5s ease-in-out infinite; }
+  .pet-eye-r { animation-delay: .06s; }
+  .pet-mouth { stroke: #fff; stroke-width: 2.4; opacity: .9; }
+  @keyframes pet-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes pet-blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.12); } }
+
+  /* Thinking: a response is streaming — quicker bob, eyes track upward as
+     if considering something, plus a soft pulsing ring. */
+  .pet[data-mood="thinking"] { animation: pet-bob 1.1s ease-in-out infinite; }
+  .pet[data-mood="thinking"] .pet-eye { animation: none; transform: translateY(-1.5px); }
+  .pet[data-mood="thinking"]::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accent);
+    opacity: .5; animation: pet-ring 1.1s ease-out infinite;
+  }
+  @keyframes pet-ring { 0% { transform: scale(.85); opacity: .55; } 100% { transform: scale(1.35); opacity: 0; } }
+
+  /* Happy: a cache hit just landed — instant answer, no real call needed. */
+  .pet[data-mood="happy"] { animation: pet-happy .7s ease; }
+  .pet[data-mood="happy"] .pet-body { fill: var(--hit); }
+  .pet[data-mood="happy"] .pet-mouth { d: path("M22 39 Q32 48 42 39"); }
+  @keyframes pet-happy { 0% { transform: scale(1); } 35% { transform: scale(1.22) translateY(-6px); } 100% { transform: scale(1); } }
+
+  /* Sad: the last request failed. */
+  .pet[data-mood="sad"] { animation: pet-shake .5s ease; }
+  .pet[data-mood="sad"] .pet-body { fill: var(--miss); }
+  .pet[data-mood="sad"] .pet-eye { animation: none; transform: scaleY(.55); }
+  .pet[data-mood="sad"] .pet-mouth { d: path("M23 43 Q32 37 41 43"); }
+  @keyframes pet-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pet, .pet-eye, .pet[data-mood]::after { animation: none !important; }
+  }
+  @media (max-width: 760px) { .pet { display: none; } }
+
   /* Live-metrics header badge (hit-rate ring) + popup — docked in the header
      like Tokens/Settings, not a floating draggable widget. */
   .fab { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer;
@@ -1206,6 +1245,18 @@
     <button class="jump-latest" id="jump-latest" title="Jump to latest">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M6 13l6 6 6-6"/></svg> Latest
     </button>
+    <!-- A small companion, not a status widget — it reacts to the same
+         signals the UI already shows (streaming, cache hits, errors), just
+         with some personality. Purely decorative: nothing here is the only
+         place a piece of state is visible. -->
+    <div class="pet" id="pet" data-mood="idle" title="Idle">
+      <svg viewBox="0 0 64 64">
+        <circle class="pet-body" cx="32" cy="32" r="25"/>
+        <circle class="pet-eye pet-eye-l" cx="23" cy="30" r="3.6"/>
+        <circle class="pet-eye pet-eye-r" cx="41" cy="30" r="3.6"/>
+        <path class="pet-mouth" d="M23 40 Q32 46 41 40" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="composer-dock">
       <div class="wrap">
         <form id="form" autocomplete="off">
