@@ -848,6 +848,28 @@
   .empty { color: var(--faint); text-align: center; padding: 40px 0; font-size: 14px; }
   .empty svg { width: 30px; height: 30px; opacity: .5; margin-bottom: 8px; display: block; margin-inline: auto; }
 
+  /* Usage recap — a personal-stats card on the returning-user welcome
+     screen, computed entirely from this account's own conversation history
+     (local store + the per-user request log), never a server-wide figure. */
+  .usage-recap { margin-top: 28px; text-align: left; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px 20px 20px; }
+  .usage-recap-head { font-size: 12px; font-weight: 650; color: var(--muted); letter-spacing: .01em;
+    text-transform: uppercase; margin: 0 0 14px; }
+  .usage-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 10px; margin-bottom: 16px; }
+  .ustat { min-width: 0; }
+  .ustat .ulabel { font-size: 11px; color: var(--faint); margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ustat .uval { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; }
+  .uheatmap { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; grid-auto-columns: 1fr;
+    gap: 3px; height: 68px; margin-bottom: 12px; }
+  .uheatmap .uday { border-radius: 3px; background: var(--border); }
+  .uheatmap .uday[data-lvl="1"] { background: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+  .uheatmap .uday[data-lvl="2"] { background: color-mix(in srgb, var(--accent) 65%, var(--border)); }
+  .uheatmap .uday[data-lvl="3"] { background: var(--accent); }
+  .usage-fun { font-size: 12px; color: var(--faint); margin: 0; }
+  .usage-fun i { color: var(--muted); font-style: normal; font-weight: 600; }
+  @media (max-width: 560px) { .usage-stats { grid-template-columns: repeat(2, 1fr); } }
+
   /* Camera modal */
   /* login / signup gate */
   .auth-gate { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px;
@@ -1849,6 +1871,100 @@ function mdToHtml(src) {
 
 const _AVATAR = `<svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><g class="loop"><circle cx="9" cy="12" r="4.3"/><circle cx="15" cy="12" r="4.3"/></g><line class="p1" x1="4.3" y1="12" x2="2" y2="12"/><line class="p2" x1="19.7" y1="12" x2="22" y2="12"/><line class="p3" x1="9" y1="7.7" x2="9" y2="5.2"/><line class="p4" x1="15" y1="16.3" x2="15" y2="18.8"/></svg>`;
 
+// ---- usage recap (welcome screen) ----
+// Everything here reads only this account's own data — store.conversations
+// (namespaced per user id, see bootApp) for sessions/messages/timing, and
+// each message's own .tokens/.model (set from the real streamed response)
+// for the token total and favorite-model tally. No server round-trip.
+function computeUsageStats() {
+  const convs = store.conversations.filter(c => c.messages && c.messages.length);
+  let totalMessages = 0, totalTokens = 0;
+  const dayCounts = new Map();          // "YYYY-MM-DD" -> message count
+  const hourCounts = new Array(24).fill(0);
+  const modelTokens = new Map();        // raw model string -> tokens
+  for (const c of convs) {
+    for (const m of c.messages) {
+      if (!m.at) continue;
+      totalMessages += m.a ? 2 : 1;     // a user turn, plus its answer once one exists
+      const d = new Date(m.at);
+      const key = d.toISOString().slice(0, 10);
+      dayCounts.set(key, (dayCounts.get(key) || 0) + 1);
+      hourCounts[d.getHours()]++;
+      if (m.tokens) {
+        totalTokens += m.tokens;
+        if (m.model) modelTokens.set(m.model, (modelTokens.get(m.model) || 0) + m.tokens);
+      }
+    }
+  }
+  const dayNums = [...dayCounts.keys()].sort()
+    .map(k => Math.floor(new Date(k + "T00:00:00Z").getTime() / 86400000));
+  let longest = 0, run = 0, prev = null;
+  for (const n of dayNums) { run = (prev !== null && n === prev + 1) ? run + 1 : 1; longest = Math.max(longest, run); prev = n; }
+  const daySet = new Set(dayNums);
+  const todayNum = Math.floor(Date.now() / 86400000);
+  let cursor = daySet.has(todayNum) ? todayNum : todayNum - 1;   // today not active yet still counts an ongoing streak from yesterday
+  let current = 0;
+  while (daySet.has(cursor)) { current++; cursor--; }
+  let peakHour = 0, peakCount = 0;
+  hourCounts.forEach((n, h) => { if (n > peakCount) { peakCount = n; peakHour = h; } });
+  const peakLabel = peakCount ? `${peakHour % 12 || 12} ${peakHour < 12 ? "AM" : "PM"}` : "—";
+  let favModel = null, favTokens = 0;
+  modelTokens.forEach((tok, model) => { if (tok > favTokens) { favTokens = tok; favModel = model; } });
+  const favLabel = favModel ? ((_models.find(x => x.model === favModel) || {}).label || favModel) : "—";
+  return { sessions: convs.length, totalMessages, totalTokens, activeDays: dayCounts.size,
+    current, longest, peakLabel, favLabel, dayCounts };
+}
+function _compactNum(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + "K";
+  return String(n);
+}
+function _renderHeatmap(dayCounts) {
+  const DAYS = 70;   // ~10 weeks, matches the grid's 7-row/N-column layout
+  const todayNum = Math.floor(Date.now() / 86400000);
+  const counts = [];
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const key = new Date((todayNum - i) * 86400000).toISOString().slice(0, 10);
+    counts.push(dayCounts.get(key) || 0);
+  }
+  const max = Math.max(1, ...counts);
+  return counts.map(c => {
+    const lvl = c === 0 ? 0 : c >= max * 0.66 ? 3 : c >= max * 0.33 ? 2 : 1;
+    return `<span class="uday" data-lvl="${lvl}"></span>`;
+  }).join("");
+}
+// A famous word count turned into an approximate token count (~1.3
+// tokens/word for ordinary English prose) — purely a fun size reference,
+// not a precise conversion.
+const _HOBBIT_TOKENS = 123500;
+function _tokenFunFact(totalTokens) {
+  if (!totalTokens) return "";
+  const ratio = totalTokens / _HOBBIT_TOKENS;
+  return ratio >= 1
+    ? `You've used ~${(ratio < 10 ? ratio.toFixed(1) : Math.round(ratio))}× more tokens than the full text of <i>The Hobbit</i>.`
+    : `That's ${Math.max(1, Math.round(ratio * 100))}% of the full text of <i>The Hobbit</i>, in tokens.`;
+}
+function renderUsageRecap() {
+  const s = computeUsageStats();
+  if (!s.sessions) return "";   // nothing real to show yet
+  const fact = _tokenFunFact(s.totalTokens);
+  return `<div class="usage-recap">
+    <p class="usage-recap-head">Your usage</p>
+    <div class="usage-stats">
+      <div class="ustat"><p class="ulabel">Sessions</p><p class="uval">${s.sessions.toLocaleString()}</p></div>
+      <div class="ustat"><p class="ulabel">Messages</p><p class="uval">${s.totalMessages.toLocaleString()}</p></div>
+      <div class="ustat"><p class="ulabel">Total tokens</p><p class="uval">${_compactNum(s.totalTokens)}</p></div>
+      <div class="ustat"><p class="ulabel">Active days</p><p class="uval">${s.activeDays}</p></div>
+      <div class="ustat"><p class="ulabel">Current streak</p><p class="uval">${s.current}d</p></div>
+      <div class="ustat"><p class="ulabel">Longest streak</p><p class="uval">${s.longest}d</p></div>
+      <div class="ustat"><p class="ulabel">Peak hour</p><p class="uval">${s.peakLabel}</p></div>
+      <div class="ustat"><p class="ulabel">Favorite model</p><p class="uval">${esc(s.favLabel)}</p></div>
+    </div>
+    <div class="uheatmap">${_renderHeatmap(s.dayCounts)}</div>
+    ${fact ? `<p class="usage-fun">${fact}</p>` : ""}
+  </div>`;
+}
+
 function renderFeed() {
   // Any open inline previews are about to be torn out with the rest of
   // #messages' innerHTML — drop their registry entries too, or each one leaks
@@ -1893,11 +2009,15 @@ function renderFeed() {
     const chips = code
       ? ["Landing page for a coffee shop", "A to-do list app in one HTML file", "Bouncing-ball animation on canvas", "Python: read a CSV and plot it"]
       : EXAMPLES;
+    // Only the plain "you're back" welcome gets the recap — a brand-new
+    // signup has no history yet, and the Code-tab welcome is a different
+    // empty state entirely, not a place to report on chat usage.
+    const recap = (!code && !fresh) ? renderUsageRecap() : "";
     box.innerHTML = `<div class="welcome"><div class="welcome-logo${code ? " code" : ""}">${logo}</div>` +
       `<div class="welcome-badge"><span class="dot"></span>${esc(badge)}</div>` +
       `<h3>${heading}</h3><p>${blurb}</p>` +
       `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>` +
-      `<div class="welcome-chips">${chips.map(x => `<button class="wchip">${esc(x)}</button>`).join("")}</div></div>`;
+      `<div class="welcome-chips">${chips.map(x => `<button class="wchip">${esc(x)}</button>`).join("")}</div>${recap}</div>`;
     box.querySelectorAll(".wchip").forEach(c => c.addEventListener("click", () => { $("prompt").value = c.textContent; $("prompt").dispatchEvent(new Event("input")); $("prompt").focus(); }));
     if (fresh) { const l = $("welcome-conn-link"); if (l) l.addEventListener("click", (e) => { e.stopPropagation(); openConnectionsFor(); }); }
     return;
