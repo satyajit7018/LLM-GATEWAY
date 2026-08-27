@@ -3041,6 +3041,7 @@ function autoRunPreview(md, msg, convId) {
     $("preview-sub").innerHTML = errs
       ? `<span class="run-bad">⚠ ${errs} error${errs > 1 ? "s" : ""} — see Console</span>`
       : `<span class="run-ok">✓ ran with no errors</span>`;
+    if (current().id === convId) setPetMood(errs ? "sad" : "happy", errs ? 1200 : 900);
     if (msg) {
       msg.run = { ok: errs === 0, errors: errs }; msg.checking = null;
       msg.projectSnapshot = JSON.parse(JSON.stringify(project.files)); msg.projectActive = project.active;
