@@ -232,7 +232,9 @@
   .opts-menu.open { display: flex; flex-direction: column; gap: 8px; animation: rise .14s ease; }
 
   .body { display: grid; grid-template-columns: 258px 1fr; min-height: 0; }
-  aside { background: var(--side); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  aside { background: var(--side); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .btn-label { display: inline-block; overflow: hidden; white-space: nowrap; max-width: 100px;
+    opacity: 1; transition: max-width .16s ease, opacity .1s ease, margin-left .16s ease; }
   .side-actions { display: flex; gap: 8px; margin: 14px 12px 8px; }
   .new-chat { flex: 1; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border);
     background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 570; cursor: pointer;
@@ -257,7 +259,7 @@
      below 760px the sidebar is already a full overlay drawer by default,
      so there's nothing extra to minimize there. */
   @media (min-width: 761px) {
-    .body { transition: grid-template-columns .18s ease; }
+    .body { transition: grid-template-columns .22s cubic-bezier(.4,0,.2,1); will-change: grid-template-columns; }
     /* Always reachable now, not just once already minimized — this is the
        manual "physical" collapse control, alongside the automatic
        typing/streaming behavior (see updateSidebarSlim). */
@@ -267,7 +269,7 @@
     body.project-focus .side-scroll, body.sidebar-slim .side-scroll { display: none; }
     body.project-focus .side-actions, body.sidebar-slim .side-actions { flex-direction: column; margin: 14px 6px; gap: 6px; }
     body.project-focus .new-chat, body.sidebar-slim .new-chat { padding: 10px 0; justify-content: center; }
-    body.project-focus .new-chat .btn-label, body.sidebar-slim .new-chat .btn-label { display: none; }
+    body.project-focus .new-chat .btn-label, body.sidebar-slim .new-chat .btn-label { max-width: 0; opacity: 0; margin-left: -7px; }
     body.project-focus aside.open, body.sidebar-slim aside.open {
       position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 30;
       box-shadow: var(--shadow);
@@ -276,7 +278,7 @@
     body.project-focus aside.open .side-scroll, body.sidebar-slim aside.open .side-scroll { display: block; }
     body.project-focus aside.open .side-actions, body.sidebar-slim aside.open .side-actions { flex-direction: row; margin: 14px 12px 8px; gap: 8px; }
     body.project-focus aside.open .new-chat, body.sidebar-slim aside.open .new-chat { padding: 10px 12px; justify-content: center; }
-    body.project-focus aside.open .new-chat .btn-label, body.sidebar-slim aside.open .new-chat .btn-label { display: inline; }
+    body.project-focus aside.open .new-chat .btn-label, body.sidebar-slim aside.open .new-chat .btn-label { max-width: 100px; opacity: 1; margin-left: 0; }
     body.project-focus .backdrop.show, body.sidebar-slim .backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; }
   }
 
@@ -1980,7 +1982,10 @@ let _sidebarPinned = localStorage.getItem(SIDEBAR_PIN_LS) === "1";
 function updateSidebarSlim() {
   const conv = current();
   if (conv.projectId) { document.body.classList.remove("sidebar-slim"); return; }
-  const typing = document.activeElement === $("prompt") || $("prompt").value.trim().length > 0;
+  // Actual typed content only — not mere focus. The composer autofocuses on
+  // every fresh chat, so keying off focus alone collapsed the sidebar the
+  // instant a chat opened, before the user had done anything.
+  const typing = $("prompt").value.trim().length > 0;
   const streaming = _inFlight.has(conv.id);
   document.body.classList.toggle("sidebar-slim", _sidebarPinned || typing || streaming);
 }
@@ -4100,8 +4105,6 @@ function syncSendLabel() {
 
 // ---- chips, textarea autoresize, sidebar toggle, init ----
 $("prompt").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px"; updateSidebarSlim(); });
-$("prompt").addEventListener("focus", updateSidebarSlim);
-$("prompt").addEventListener("blur", updateSidebarSlim);
 $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); } });
 $("new-chat").addEventListener("click", newChat);
 $("new-code").addEventListener("click", newCodeTab);
@@ -4116,7 +4119,7 @@ $("menu-btn").addEventListener("click", () => {
   const conv = current();
   const slim = document.body.classList.contains("sidebar-slim") || document.body.classList.contains("project-focus");
   if (!slim) { _sidebarPinned = true; localStorage.setItem(SIDEBAR_PIN_LS, "1"); updateSidebarSlim(); return; }
-  const typing = document.activeElement === $("prompt") || $("prompt").value.trim().length > 0;
+  const typing = $("prompt").value.trim().length > 0;
   const streaming = _inFlight.has(conv.id);
   if (_sidebarPinned && !typing && !streaming && !conv.projectId) {
     _sidebarPinned = false; localStorage.setItem(SIDEBAR_PIN_LS, "0"); updateSidebarSlim();
