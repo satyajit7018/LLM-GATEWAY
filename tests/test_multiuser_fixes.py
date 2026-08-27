@@ -35,7 +35,7 @@ def test_per_user_bucket_isolates_accounts(monkeypatch):
     """Each account gets its OWN budget — one user hitting their cap must not
     affect a different user's ability to send requests."""
     tiny = resilience.KeyedTokenBuckets(rate_per_s=0.0001, capacity=1)  # ~1 request, no meaningful refill
-    monkeypatch.setattr("app.main.per_user_bucket", tiny)
+    monkeypatch.setattr("app.routers.gateway.per_user_bucket", tiny)
 
     a, b, c = _signed_in_client(), _signed_in_client(), _signed_in_client()
     # Each account's FIRST call succeeds — if they shared one bucket instead of
@@ -58,7 +58,7 @@ def test_per_user_bucket_isolates_accounts(monkeypatch):
 def test_global_bucket_still_applies_on_top(monkeypatch):
     """The per-user fix is additive — the original global cap (protecting the
     upstream provider in aggregate) must still be enforced."""
-    monkeypatch.setattr("app.main.bucket", resilience.TokenBucket(rate_per_s=0.0001, capacity=0))
+    monkeypatch.setattr("app.routers.gateway.bucket", resilience.TokenBucket(rate_per_s=0.0001, capacity=0))
     c = _signed_in_client()
     r = c.post("/generate", json={"prompt": _fresh_prompt()})
     assert r.status_code == 429

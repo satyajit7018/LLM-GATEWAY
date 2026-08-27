@@ -105,7 +105,7 @@ def test_models_show_user_source_after_adding_key(monkeypatch):
     monkeypatch.setattr(config, "LLM_BACKEND", "groq")  # avoid the mock-backend "always available" path
     monkeypatch.setattr(config, "PROVIDERS", {**config.PROVIDERS,
                         "mistral": {**config.PROVIDERS["mistral"], "key_env": "NOPE_UNSET_ENV"}})
-    monkeypatch.setattr("app.main.validate_key", lambda p, k: (True, None))  # unrelated to this test
+    monkeypatch.setattr("app.routers.auth.validate_key", lambda p, k: (True, None))  # unrelated to this test
     c = _signed_in_client()
     before = next(m for m in c.get("/models").json()["models"] if m["provider"] == "mistral")
     assert before["available"] is False and before["source"] is None
@@ -158,7 +158,7 @@ def test_validate_key_does_not_block_on_rate_limit(monkeypatch):
 
 def test_add_key_endpoint_rejects_invalid_key(monkeypatch):
     monkeypatch.setattr(config, "LLM_BACKEND", "groq")
-    monkeypatch.setattr("app.main.validate_key", lambda p, k: (False, "That key was rejected."))
+    monkeypatch.setattr("app.routers.auth.validate_key", lambda p, k: (False, "That key was rejected."))
     c = _signed_in_client()
     r = c.post("/keys", json={"provider": "groq", "api_key": "sk-bad"})
     assert r.status_code == 400
