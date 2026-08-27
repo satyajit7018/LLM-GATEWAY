@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LLM Gateway Tour</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f6f7fb; --bg2: #eceef4; --panel: #ffffff; --panel2: #f1f2f8;
+    --border: #dfe2ec; --text: #171a23; --muted: #5b6172; --faint: #939aad;
+    --accent: #2f5fe0; --accent2: #7c6bf0;
+    --hit: #17874e; --hit-bg: rgba(23,135,78,.08);
+    --warn: #9a6a08; --warn-bg: rgba(154,106,8,.09);
+    --miss: #c8352f; --miss-bg: rgba(200,53,47,.08);
+    --shadow: 0 1px 2px rgba(20,24,40,.05), 0 10px 30px rgba(20,24,40,.06);
+    --code-bg: #eef0f7; --code-text: #2a2f3d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a0c11; --bg2: #12151c; --panel: #14171f; --panel2: #191d27;
+      --border: #262b38; --text: #e9ebf2; --muted: #9298ab; --faint: #5c6377;
+      --accent: #6c93ff; --accent2: #a08bff;
+      --hit: #3fb96e; --hit-bg: rgba(63,185,110,.12);
+      --warn: #dcae4a; --warn-bg: rgba(220,174,74,.12);
+      --miss: #ef6e67; --miss-bg: rgba(239,110,103,.12);
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.4);
+      --code-bg: #10131a; --code-text: #cdd3e6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0c11; --bg2: #12151c; --panel: #14171f; --panel2: #191d27;
+    --border: #262b38; --text: #e9ebf2; --muted: #9298ab; --faint: #5c6377;
+    --accent: #6c93ff; --accent2: #a08bff;
+    --hit: #3fb96e; --hit-bg: rgba(63,185,110,.12);
+    --warn: #dcae4a; --warn-bg: rgba(220,174,74,.12);
+    --miss: #ef6e67; --miss-bg: rgba(239,110,103,.12);
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.4);
+    --code-bg: #10131a; --code-text: #cdd3e6;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: "Sora", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  a { color: inherit; }
+  img, svg { display: block; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 76px; padding-bottom: 56px; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -20% -10% auto -10%; height: 520px;
+    background: radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+                radial-gradient(50% 50% at 80% 10%, color-mix(in srgb, var(--accent2) 14%, transparent), transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .hero-inner { position: relative; z-index: 1; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .brand .mark {
+    width: 34px; height: 34px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: grid; place-items: center; box-shadow: var(--shadow);
+  }
+  .brand .mark svg { width: 19px; height: 19px; }
+  .brand .name { font-family: "Sora", sans-serif; font-weight: 700; font-size: 16.5px; letter-spacing: -.01em; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+    border-radius: 999px; padding: 5px 12px 5px 10px; margin-bottom: 22px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hit); box-shadow: 0 0 0 3px var(--hit-bg); }
+  h1.headline {
+    font-size: clamp(34px, 5vw, 54px); font-weight: 700; line-height: 1.06; letter-spacing: -.015em;
+    max-width: 15ch;
+  }
+  h1.headline em {
+    font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub {
+    font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 56ch; margin-top: 20px;
+  }
+  .stat-strip { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 36px; }
+  .stat { min-width: 108px; }
+  .stat .n {
+    font-family: "Sora", sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .l { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- section scaffolding ---------- */
+  section.group { padding-top: 46px; padding-bottom: 46px; border-top: 1px solid var(--border); }
+  .group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin-bottom: 28px; flex-wrap: wrap; }
+  .group-head h2 { font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+  .group-tag {
+    font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); font-family: "IBM Plex Mono", monospace;
+  }
+  .group-desc { color: var(--muted); font-size: 15px; max-width: 62ch; margin: 8px 0 0; line-height: 1.6; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 18px 19px;
+    box-shadow: var(--shadow);
+  }
+  .card .icon {
+    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 13px;
+    background: var(--panel2); color: var(--accent); border: 1px solid var(--border);
+  }
+  .card .icon svg { width: 17px; height: 17px; }
+  .card h3 { font-size: 14.5px; font-weight: 640; margin-bottom: 6px; letter-spacing: -.005em; }
+  .card p { font-size: 13px; line-height: 1.55; color: var(--muted); margin: 0; }
+  .card .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+  .card .tags span {
+    font-size: 10.5px; font-weight: 550; padding: 2.5px 8px; border-radius: 999px;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--faint);
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  /* pipeline diagram */
+  .pipeline {
+    display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 22px 0 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
+  }
+  .pnode {
+    flex: none; background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 15px; box-shadow: var(--shadow); text-align: center; min-width: 118px;
+  }
+  .pnode.hit { border-color: color-mix(in srgb, var(--hit) 45%, var(--border)); color: var(--hit); }
+  .parrow { flex: none; width: 30px; height: 1px; background: var(--border); position: relative; margin: 0 4px; }
+  .parrow::after {
+    content: ""; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    border: 4px solid transparent; border-left-color: var(--border);
+  }
+
+  /* task board mini kanban illustration */
+  .mini-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px; }
+  .mini-col { background: var(--bg2); border-radius: 12px; padding: 9px; }
+  .mini-col .h { font-size: 10.5px; font-weight: 640; color: var(--muted); display: flex; align-items: center; gap: 5px; margin-bottom: 7px; }
+  .mini-col .h i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .mini-col .h.busy i { background: var(--accent); } .mini-col .h.bad i { background: var(--miss); } .mini-col .h.ok i { background: var(--hit); }
+  .mini-card { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 7px 8px; font-size: 10.5px; margin-bottom: 6px; box-shadow: var(--shadow); }
+
+  /* trace strip */
+  .trace { display: flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; margin-top: 4px; flex-wrap: wrap; }
+  .trace .step { padding: 5px 11px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+  .trace .step.ok { color: var(--hit); border-color: color-mix(in srgb, var(--hit) 40%, var(--border)); background: var(--hit-bg); }
+  .trace .arrow { color: var(--faint); }
+
+  /* pet mood strip */
+  .mood-strip { display: flex; align-items: center; gap: 10px; margin-top: 4px; flex-wrap: wrap; font-size: 12px; }
+  .mood-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); color: var(--muted); }
+  .mood-chip i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .mood-chip.idle i { background: var(--accent); }
+  .mood-chip.hit i { background: var(--hit); }
+  .mood-chip.miss i { background: var(--miss); }
+  .mood-chip.busy i { background: var(--warn); }
+  .mood-arrow { color: var(--faint); font-family: "IBM Plex Mono", monospace; }
+
+  footer { padding-top: 44px; padding-bottom: 60px; border-top: 1px solid var(--border); }
+  .foot-grid { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .foot-note { font-size: 13px; color: var(--faint); max-width: 46ch; line-height: 1.6; }
+  .foot-cta { font-size: 13px; color: var(--muted); }
+  .foot-cta code { background: var(--code-bg); color: var(--code-text); padding: 2px 7px; border-radius: 6px; font-size: 12px; }
+
+  @media (max-width: 720px) {
+    .mini-board { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 56px 0 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap hero">
+  <div class="hero-inner">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" fill="#fff"/></svg></div>
+      <span class="name">LLM Gateway</span>
+    </div>
+    <div class="eyebrow"><span class="dot"></span>Live · one account, every model</div>
+    <h1 class="headline">One chat app for talking to models <em>and shipping code</em></h1>
+    <p class="sub">A caching gateway with a full chat UI on top — free everyday models out of the box, your own key
+      to unlock premium ones, and a real code workspace (editor, sandboxed preview, local execution, task board)
+      built into the same window. Here's everything it can do.</p>
+    <div class="stat-strip">
+      <div class="stat"><div class="n">6</div><div class="l">model providers</div></div>
+      <div class="stat"><div class="n">10+</div><div class="l">curated models</div></div>
+      <div class="stat"><div class="n">&lt;1ms</div><div class="l">cache-hit latency</div></div>
+      <div class="stat"><div class="n">119+</div><div class="l">automated tests</div></div>
+    </div>
+  </div>
+</div>
+
+<section class="group wrap">
+  <div class="group-head">
+    <h2>Chat, tuned to not waste your tokens</h2>
+    <span class="group-tag">core engine</span>
+  </div>
+  <p class="group-desc">Every message runs through a request pipeline before it ever reaches a paid API call —
+    so repeats are instant and free, and only genuinely new questions cost anything.</p>
+  <div class="pipeline">
+    <div class="pnode">Your message</div><div class="parrow"></div>
+    <div class="pnode">Rate limiter</div><div class="parrow"></div>
+    <div class="pnode hit">Exact-match cache</div><div class="parrow"></div>
+    <div class="pnode hit">Semantic cache</div><div class="parrow"></div>
+    <div class="pnode">Retry + circuit breaker</div><div class="parrow"></div>
+    <div class="pnode">Model</div>
+  </div>
+  <div class="grid" style="margin-top:24px">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div>
+      <h3>Two-layer caching</h3>
+      <p>Exact-match for identical prompts, semantic (cosine similarity) for reworded ones — repeated and near-duplicate questions cost ~0ms and 0 tokens.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <h3>Streaming responses</h3>
+      <p>Token-by-token replies with Stop / Regenerate, an edit-and-resend on any past message, and graceful auto-retrying instead of raw errors.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M8 8h8M8 16h5"/></svg></div>
+      <h3>Multi-provider routing</h3>
+      <p>Groq, Google Gemini, OpenRouter, Mistral and more — pick a model per message; each caches separately, so nothing crosses providers by accident.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></div>
+      <h3>Vision + documents</h3>
+      <p>Attach photos or camera shots and it auto-routes to a vision-capable model; PDFs and text files are read straight into the prompt.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><path d="M8 15l3-4 3 3 5-7"/></svg></div>
+      <h3>Resilience</h3>
+      <p>Token-bucket rate limiting, exponential-backoff retries, and a circuit breaker — a failing provider can't cascade into a broken chat.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div>
+      <h3>Live cost dashboards</h3>
+      <p>Per-model usage and cost, cache hit-rate, and latency — durable and server-backed, visible right from the chat header.</p>
+    </div>
+  </div>
+</section>
+
+<section class="group wrap">
+  <div class="group-head">
+    <h2>Your account, your keys, your quota</h2>
+    <span class="group-tag">access</span>
+  </div>
+  <p class="group-desc">Free everyday models are included for anyone with an account. Bring your own API key for a
+    provider and its premium models unlock instantly — billed to you, not the app.</p>
+  <div class="grid">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a4 4 0 100-8 4 4 0 000 8Z"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg></div>
+      <h3>Accounts, done properly</h3>
+      <p>Signup/login, email verification, forgot/reset password, change password, sign out everywhere, and delete account — all self-serve from Settings.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+      <h3>Bring your own key</h3>
+      <p>Add a provider's API key to unlock its models. The key is validated with a real test call before it's ever saved, so a typo gets caught immediately, not later.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Z"/><path d="M12 6v6l4 2"/></svg></div>
+      <h3>Free daily quota</h3>
+      <p>A per-user daily token allowance on the app's shared models, with a live usage bar in Settings and a quiet warning toast as you approach it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="group wrap">
+  <div class="group-head">
+    <h2>A real code workspace, not a code block</h2>
+    <span class="group-tag">build mode</span>
+  </div>
+  <p class="group-desc">Turn on Build and the model writes runnable projects instead of chat text — rendered live,
+    checked automatically, and editable in a proper multi-file IDE, all inline below the conversation.</p>
+  <div class="grid">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+      <h3>Live sandboxed preview</h3>
+      <p>Every answer auto-runs in a sandboxed frame and self-checks for console errors — a pass/fail chip lands right on the chat message.</p>
+      <div class="trace">
+        <span class="step">writing code…</span><span class="arrow">→</span>
+        <span class="step">running &amp; checking…</span><span class="arrow">→</span>
+        <span class="step ok">✓ runs clean</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-12M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></div>
+      <h3>Multi-file Monaco editor</h3>
+      <p>The same editor core as VS Code, vendored offline and loaded on demand — real IntelliSense for JS/TS/CSS/HTML/JSON and Python via Jedi, plus project-wide search.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17V7a2 2 0 012-2h5l2 2h7v10a2 2 0 01-2 2H6a2 2 0 01-2-2Z"/></svg></div>
+      <h3>Console, Terminal, Files, Diff</h3>
+      <p>Tabs for runtime console output, a real local terminal, a workspace file browser, and a reviewable diff when a Build touches an already-open project.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
+      <h3>Local execution</h3>
+      <p>Real interpreters — Python, Node, Bash, Ruby — with interactive stdin, pip/npm installs, and a persistent per-project workspace. Loopback-only by default.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg></div>
+      <h3>"Fix it with AI"</h3>
+      <p>A real traceback becomes an inline editor marker on the failing line, and one click feeds the actual error back to the model to re-prompt and re-run.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6M12 9v6"/></svg></div>
+      <h3>Screenshot → code</h3>
+      <p>Attach a design reference or screenshot in Build mode and it's read as a layout to reproduce, not just an image to describe.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18Z"/></svg></div>
+      <h3>Publish</h3>
+      <p>One click gets a stable, shareable link to the rendered page — hosted by the same server, no third-party deploy account required.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M12 14L6 9M12 14l6-5M12 4v4"/></svg></div>
+      <h3>Revert to any checkpoint</h3>
+      <p>Every message that changed the code carries a snapshot of the project at that point — one click restores it exactly, no matter what's changed since.</p>
+    </div>
+  </div>
+</section>
+
+<section class="group wrap">
+  <div class="group-head">
+    <h2>A task board for running more than one thing at once</h2>
+    <span class="group-tag">task board</span>
+  </div>
+  <p class="group-desc">Every code tab is a task. The board shows them all at a glance — and Builds keep running in
+    the background while you work on something else.</p>
+  <div class="mini-board">
+    <div class="mini-col">
+      <div class="h"><i style="background:var(--faint)"></i>Not started</div>
+      <div class="mini-card">Landing page revamp</div>
+    </div>
+    <div class="mini-col">
+      <div class="h busy"><i></i>In progress</div>
+      <div class="mini-card">Auth flow (fork)</div>
+    </div>
+    <div class="mini-col">
+      <div class="h bad"><i></i>Needs fix</div>
+      <div class="mini-card">CSV importer</div>
+    </div>
+    <div class="mini-col">
+      <div class="h ok"><i></i>Done</div>
+      <div class="mini-card">Pricing table</div>
+      <div class="mini-card">Dark mode toggle</div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:22px">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg></div>
+      <h3>Kanban board</h3>
+      <p>Every code tab, grouped into Not started / In progress / Needs fix / Done — status is live, drag a card to override it manually.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+      <h3>Goal notes</h3>
+      <p>Attach a short note to any task describing what it's actually for, separate from the chat title — click a card to edit it inline.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.3"/><circle cx="6" cy="18" r="2.3"/><circle cx="18" cy="12" r="2.3"/><path d="M6 8.3V15.7M8 6h5a4 4 0 014 4"/></svg></div>
+      <h3>Fork a task</h3>
+      <p>Clone a task's current project into a new, independently-running one — try two different approaches to the same starting point.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3v18M17 3v18M3 8h4M17 8h4M3 16h4M17 16h4"/></svg></div>
+      <h3>Merge review</h3>
+      <p>Diff a forked task against its original file by file, pick "keep mine" or "keep theirs" per changed file, and apply the result.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9"/></svg></div>
+      <h3>Real background concurrency</h3>
+      <p>Start a Build, switch to a different task, start another — both actually run at once. Come back and its live-preview check has already finished too.</p>
+    </div>
+  </div>
+</section>
+
+<section class="group wrap">
+  <div class="group-head">
+    <h2>A companion that's actually alive</h2>
+    <span class="group-tag">the pet</span>
+  </div>
+  <p class="group-desc">A small WALL·E-inspired mascot perched on the composer — her mood mirrors what the app is
+    really doing, and left alone long enough, she goes and lives her own little life.</p>
+  <div class="mood-strip">
+    <span class="mood-chip idle"><i></i>idle</span><span class="mood-arrow">→</span>
+    <span class="mood-chip busy"><i></i>thinking</span><span class="mood-arrow">→</span>
+    <span class="mood-chip hit"><i></i>cache hit</span>
+    <span class="mood-arrow" style="margin-left:8px">or</span>
+    <span class="mood-chip miss"><i></i>upstream error</span>
+  </div>
+  <div class="grid" style="margin-top:22px">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01"/><path d="M8 15c1.5 1 6.5 1 8 0"/></svg></div>
+      <h3>Reacts to what's actually happening</h3>
+      <p>Thinking while a real call streams, happy on an instant cache hit, sad when one fails — decoration that's genuinely tied to app state, not just looping for its own sake.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5a4 4 0 100 8 4 4 0 000-8Z"/><path d="M5 20c1.8-4.2 4.9-6 7-6s5.2 1.8 7 6"/></svg></div>
+      <h3>Notices the cursor</h3>
+      <p>Eyes and body lean toward the pointer, a hover-close perk when you get near, a poke gets a squash-and-stretch bounce, a double-click gets a full spin — and every fifth poke earns a little heart.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/></svg></div>
+      <h3>Goes and lives her day</h3>
+      <p>Idle long enough, and a coin-flip chance she wanders off to cook, snack, work at a tiny laptop, or stroll the composer's edge — fully interruptible the moment you start typing or move the mouse.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Z"/><path d="M9 9h.01M15 9h.01M9 14a4 4 0 006 0"/></svg></div>
+      <h3>Never gets in the way</h3>
+      <p>Theme-aware, respects reduced-motion, and hidden entirely on touch devices — a poke while she's asleep wakes her with a bounce first, then eases her back into the day.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="foot-grid">
+    <p class="foot-note">Runs fully offline on a mock backend by default — every real service (a provider, Redis,
+      email) is one environment variable away, so there's nothing to configure just to look around.</p>
+    <p class="foot-cta">Start with <code>New chat</code> or <code>New code</code> — Settings has everything else.</p>
+  </div>
+</footer>
+</body>
+</html>

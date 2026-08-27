@@ -14,7 +14,8 @@ running more than one build at a time.
 
 Runs with **zero external setup** — no LLM API key, no Redis, no model
 downloads — every real service (a provider, Redis, email) is one environment
-variable away. See [OVERVIEW.md](OVERVIEW.md) for the fuller feature tour and
+variable away. See [OVERVIEW.md](OVERVIEW.md) for the fuller feature tour,
+[docs/tour.html](docs/tour.html) for a visual walkthrough of the same, and
 [SECURITY.md](SECURITY.md) for the account-security model.
 
 **Contents:** [Architecture](#architecture) · [Quickstart](#quickstart) ·
