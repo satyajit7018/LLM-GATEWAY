@@ -946,10 +946,6 @@
   .cap-strip { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; margin: 0 0 26px; }
   .cap { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
   .cap svg { width: 15px; height: 15px; color: var(--hit); flex: none; }
-  .welcome-chips { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
-  .wchip { font: inherit; font-size: 13px; padding: 9px 14px; border-radius: 999px; cursor: pointer; color: var(--text);
-    background: var(--panel); border: 1px solid var(--border); transition: all .15s; }
-  .wchip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); }
   .empty { color: var(--faint); text-align: center; padding: 40px 0; font-size: 14px; }
   .empty svg { width: 30px; height: 30px; opacity: .5; margin-bottom: 8px; display: block; margin-inline: auto; }
 
@@ -1569,7 +1565,6 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let LS_KEY = "llm-gateway-chats-v2";   // suffixed with the user id after login
-const EXAMPLES = ["What is the capital of France?", "capital of France?", "Explain what a load balancer does.", "Give me three uses for Redis."];
 const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|js|ts|jsx|tsx|py|java|c|cpp|h|go|rs|rb|php|sh|sql|log|ini|toml|env|conf)$/i;
 const MAX_DIM = 1024, THUMB = 128;
 
@@ -2159,18 +2154,13 @@ function renderFeed() {
       ? [["Free tier included"], ["Bring your own key"], ["Synced across devices"]]
       : [["Free tier included"], ["Bring your own key"], ["Vision &amp; PDF input"]];
     const check = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>`;
-    const chips = code
-      ? ["Landing page for a coffee shop", "A to-do list app in one HTML file", "Bouncing-ball animation on canvas", "Python: read a CSV and plot it"]
-      : EXAMPLES;
     // Only Code tabs and Project chats get the recap — a plain normal chat's
     // welcome stays as-is, and a brand-new signup has no history yet either way.
     const recap = (!fresh && (code || !!conv.projectId)) ? renderUsageRecap() : "";
     box.innerHTML = `<div class="welcome"><div class="welcome-logo${code ? " code" : ""}">${logo}</div>` +
       `<div class="welcome-badge"><span class="dot"></span>${esc(badge)}</div>` +
       `<h3>${heading}</h3><p>${blurb}</p>` +
-      `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>` +
-      `<div class="welcome-chips">${chips.map(x => `<button class="wchip">${esc(x)}</button>`).join("")}</div>${recap}</div>`;
-    box.querySelectorAll(".wchip").forEach(c => c.addEventListener("click", () => { $("prompt").value = c.textContent; $("prompt").dispatchEvent(new Event("input")); $("prompt").focus(); }));
+      `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>${recap}</div>`;
     if (fresh) { const l = $("welcome-conn-link"); if (l) l.addEventListener("click", (e) => { e.stopPropagation(); openConnectionsFor(); }); }
     return;
   }
