@@ -2112,6 +2112,7 @@ function _tokenFunFact(totalTokens) {
 function renderUsageRecap() {
   const s = computeUsageStats();
   if (!s.sessions) return "";   // nothing real to show yet
+  _petCheckMilestones(s);
   const fact = _tokenFunFact(s.totalTokens);
   return `<div class="usage-recap">
     <p class="usage-recap-head">Your usage</p>
@@ -4215,6 +4216,32 @@ function _petSpin() {
   _petWake();
   pet.classList.add("pet-spin");
   setTimeout(() => pet.classList.remove("pet-spin"), 700);
+}
+// Milestone reactions — checked whenever the usage recap renders (opening a
+// Code tab or Project chat). Persisted per-browser so the same record never
+// re-celebrates on every visit, only the first time it's actually broken.
+const PET_MILESTONE_LS = "llm-gateway-pet-milestones";
+const PET_TOKEN_TIERS = [1000, 10000, 100000, 1000000, 10000000];
+function _petCheckMilestones(s) {
+  let saved; try { saved = JSON.parse(localStorage.getItem(PET_MILESTONE_LS)) || {}; } catch { saved = {}; }
+  let label = "";
+  if (s.current >= 2 && s.current > (saved.streak || 0)) {
+    label = `New ${s.current}-day streak record!`;
+    saved.streak = s.current;
+  }
+  const tierIdx = PET_TOKEN_TIERS.reduce((acc, t, i) => (s.totalTokens >= t ? i : acc), -1);
+  if (tierIdx > (saved.tokenTier ?? -1)) {
+    label = label || `Crossed ${_compactNum(PET_TOKEN_TIERS[tierIdx])} tokens!`;
+    saved.tokenTier = tierIdx;
+  }
+  if (!label) return;
+  localStorage.setItem(PET_MILESTONE_LS, JSON.stringify(saved));
+  const pet = $("pet"); if (!pet) return;
+  setPetMood("happy", 2500);
+  pet.classList.add("pet-heart-go");
+  setTimeout(() => pet.classList.remove("pet-heart-go"), 1100);
+  pet.title = label;
+  setTimeout(() => { if (pet.title === label) pet.title = "Idle"; }, 2500);
 }
 function initPet() {
   const pet = $("pet"); if (!pet) return;
