@@ -30,6 +30,11 @@ def _connect():
     global _conn
     if _conn is None:
         _conn = sqlite3.connect(config.AUTH_DB_PATH, check_same_thread=False)
+        # WAL lets reads (login, session checks) proceed without blocking
+        # behind a write — real benefit now that multiple devices sync
+        # against this same account concurrently. No-ops on ":memory:"
+        # (used in tests).
+        _conn.execute("PRAGMA journal_mode=WAL")
         _conn.execute("""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,

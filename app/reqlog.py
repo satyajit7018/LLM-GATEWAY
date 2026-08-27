@@ -20,6 +20,11 @@ def _connect():
     global _conn
     if _conn is None:
         _conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        # WAL lets readers (e.g. /log/usage) proceed while a write is in
+        # flight instead of blocking on the single rollback-journal lock —
+        # cheap to turn on, real benefit since requests are logged from every
+        # /generate call. No-ops harmlessly on ":memory:" (used in tests).
+        _conn.execute("PRAGMA journal_mode=WAL")
         _conn.execute(
             """CREATE TABLE IF NOT EXISTS requests (
                    ts REAL, result TEXT, cache_type TEXT, model TEXT,
