@@ -4557,6 +4557,10 @@ function setTheme(mode) {
   else { document.documentElement.setAttribute("data-theme", mode); localStorage.setItem(THEME_LS, mode); }
   syncThemeSeg();
   if (ED.monaco) ED.monaco.editor.setTheme(_monacoTheme());   // keep Monaco in sync
+  // The whole world around her just changed color — a quick surprised
+  // wide-eyed blink (same look as noticing a dragged-in file).
+  const pet = $("pet");
+  if (pet) { pet.classList.add("pet-curious"); setTimeout(() => pet.classList.remove("pet-curious"), 500); }
 }
 function syncThemeSeg() { const m = themeMode(); document.querySelectorAll("#theme-seg button").forEach(b => b.classList.toggle("on", b.dataset.themeMode === m)); }
 document.querySelectorAll("#theme-seg button").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.themeMode)));
