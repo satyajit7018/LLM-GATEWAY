@@ -4199,6 +4199,13 @@ function initPet() {
   window.addEventListener("resize", () => { _petRect = null; });
   pet.addEventListener("click", _petPoke);
   setInterval(_petIdleCheck, 2000);
+  // Naps the instant you switch away to another tab — regardless of mood,
+  // since nothing here is worth animating for an audience of no one — and
+  // wakes immediately on return.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pet.classList.add("pet-asleep");
+    else { pet.classList.remove("pet-asleep"); _petWake(); }
+  });
 }
 // One streaming attempt; fills `msg` as tokens arrive. Throws an Error carrying
 // `.status` (HTTP code, or 0 for network/mid-stream) so the caller can classify.
