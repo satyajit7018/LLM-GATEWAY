@@ -467,6 +467,20 @@
     40% { transform: rotate(200deg) scale(.92); }
     100% { transform: rotate(360deg) scale(1); }
   }
+  /* Poke follow-up: a beat after the bounce, she pulls out her laptop and
+     types for a moment — reuses the exact work-phase assets/keyframes
+     (laptop prop, typing arms/eyes/lines) rather than duplicating them, so
+     the two stay visually identical and any future tweak to one covers
+     both. Plays right after pet-poke finishes, never overlapping it. */
+  .pet.pet-poke-laptop .pet-prop-work { opacity: 1; }
+  .pet.pet-poke-laptop .pet-lift { animation: pet-work-bob 1.3s ease-in-out infinite; }
+  .pet.pet-poke-laptop .pet-arm-l { animation: pet-type-arm .42s ease-in-out infinite; }
+  .pet.pet-poke-laptop .pet-arm-r { animation: pet-type-arm .42s ease-in-out infinite .21s; }
+  .pet.pet-poke-laptop .pet-eye-wrap { transform: translateY(2.2px) scale(1, .82); }
+  .pet.pet-poke-laptop .pet-laptop-line-1 { animation: pet-type 1.1s steps(1) infinite; }
+  .pet.pet-poke-laptop .pet-laptop-line-2 { animation: pet-type 1.1s steps(1) infinite .3s; }
+  .pet.pet-poke-laptop .pet-laptop-line-3 { animation: pet-type 1.1s steps(1) infinite .6s; }
+
   /* Every 5th poke while idle, for whoever's paying attention. */
   .pet.pet-heart-go .pet-heart { animation: pet-heart-float 1.1s ease-out; }
   @keyframes pet-heart-float {
@@ -4507,7 +4521,19 @@ function _petPoke() {
   // Delayed rather than immediate: cook's own animation would otherwise start
   // fighting the poke bounce for .pet-lift's transform in the same instant
   // and silently win, making the bounce invisible right when it matters most.
-  if (wasSleepingInRoutine) setTimeout(() => _petRoutineStart(0), 640);
+  if (wasSleepingInRoutine) {
+    setTimeout(() => _petRoutineStart(0), 640);
+  } else {
+    // A quick "oh, right" beat — she pulls out a tiny laptop and types for a
+    // moment, then puts it away. Staggered after the bounce for the same
+    // reason as above (mustn't fight it for .pet-lift), and skipped if an
+    // idle-routine phase is already running its own scene by then.
+    setTimeout(() => {
+      if (pet.dataset.routine) return;
+      pet.classList.add("pet-poke-laptop");
+      setTimeout(() => pet.classList.remove("pet-poke-laptop"), 1400);
+    }, 640);
+  }
   _petPokeCount++;
   if (_petPokeCount % 5 === 0 && pet.dataset.mood === "idle") {
     pet.classList.add("pet-heart-go");
