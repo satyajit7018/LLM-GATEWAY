@@ -2624,7 +2624,16 @@ function renderCodeBlock(lang, code) {
     `<pre><code>${hi}</code></pre></div>`;
 }
 
-function mdToHtml(src) {
+function mdToHtml(src, isStreaming = false) {
+  if (!src) return "";
+  let text = src;
+  if (isStreaming) {
+    const fenceMatches = text.match(/^```/gm);
+    const fenceCount = fenceMatches ? fenceMatches.length : 0;
+    if (fenceCount % 2 === 1) {
+      text = text + "\n```";
+    }
+  }
   const e = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = s => e(s)
     .replace(/`([^`]+)`/g, (m, c) => "<code>" + c + "</code>")
@@ -2633,7 +2642,7 @@ function mdToHtml(src) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   const sep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(l);
   const cells = l => l.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
-  const L = src.replace(/\r/g, "").split("\n"), out = []; let i = 0;
+  const L = text.replace(/\r/g, "").split("\n"), out = []; let i = 0;
   const blockStart = l => /^```/.test(l) || /^(#{1,6})\s/.test(l) || /^>\s?/.test(l) || /^\s*[-*+]\s+/.test(l) || /^\s*\d+[.)]\s+/.test(l);
   while (i < L.length) {
     const line = L[i];
@@ -2866,7 +2875,7 @@ function renderFeed() {
     const div = document.createElement("div"); div.className = "msg";
     const q = m.q ? esc(m.q) : `<i style="color:var(--faint)">(no text)</i>`;
     const ans = m.streaming
-      ? (m.a ? esc(m.a) : `<div class="stream-skeleton"><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-text">Thinking…</span></div>`)
+      ? (m.a ? mdToHtml(m.a, true) : `<div class="stream-skeleton"><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-text">Thinking…</span></div>`)
       : (m.error ? "" : mdToHtml(m.a));
     const editBtn = (m.q && !m.streaming) ? `<button class="q-edit" data-i="${i}" title="Edit & resend">✎</button>` : "";
     div.innerHTML =

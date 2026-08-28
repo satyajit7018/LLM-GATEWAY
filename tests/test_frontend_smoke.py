@@ -299,6 +299,13 @@ def test_drag_and_drop_overlay_renders_on_dragenter(page, live_server):
     assert "dragging-files" not in (page.locator("body").get_attribute("class") or "")
 
 
-
-
-
+def test_streaming_markdown_autocloses_unclosed_code_blocks(page, live_server):
+    """mdToHtml with isStreaming=true auto-closes unclosed code blocks and generates syntax-highlighted codebar."""
+    page.goto(live_server)
+    html = page.evaluate("""() => {
+        const streamingMarkdown = "Here is the code:\\n```python\\ndef add(a, b):\\n    return a + b";
+        return mdToHtml(streamingMarkdown, true);
+    }""")
+    assert "codewrap" in html, "Streaming markdown should auto-close and render .codewrap container"
+    assert "codebar" in html, "Streaming markdown should render .codebar terminal header"
+    assert "def" in html, "Code content should be present"
