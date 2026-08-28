@@ -239,4 +239,44 @@ def test_pet_bubble_dialogue_on_poke(page, live_server):
     assert len(bubble.inner_text().strip()) > 0
 
 
+def test_starter_prompts_render_and_populate_composer(page, live_server):
+    """Clicking a starter card populates the composer textarea #prompt."""
+    page.goto(live_server)
+    card = page.locator(".starter-card").first
+    card.wait_for(state="visible")
+    card.click()
+    val = page.locator("#prompt").input_value()
+    assert len(val.strip()) > 0, "Composer #prompt should contain starter prompt text"
+
+
+def test_toast_notification_engine_displays(page, live_server):
+    """showToast displays a floating glassmorphic toast notification."""
+    page.goto(live_server)
+    page.evaluate("showToast('Test Toast Message', 'success', 5000)")
+    toast = page.locator(".app-toast").first
+    toast.wait_for(state="visible")
+    assert "Test Toast Message" in toast.inner_text()
+    assert "toast-success" in (toast.get_attribute("class") or "")
+
+
+def test_escape_key_closes_popovers(page, live_server):
+    """Pressing Escape dismisses open popovers."""
+    page.goto(live_server)
+    page.evaluate("""() => {
+        document.getElementById('metrics-pop').classList.add('open');
+    }""")
+    assert "open" in (page.locator("#metrics-pop").get_attribute("class") or "")
+    page.keyboard.press("Escape")
+    assert "open" not in (page.locator("#metrics-pop").get_attribute("class") or "")
+
+
+def test_cmd_k_focuses_chat_search(page, live_server):
+    """Pressing Ctrl+k or Meta+k focuses the chat search input."""
+    page.goto(live_server)
+    page.keyboard.press("Control+k")
+    is_focused = page.evaluate("() => document.activeElement === document.getElementById('chat-search')")
+    assert is_focused, "#chat-search should be focused on Ctrl+k"
+
+
+
 

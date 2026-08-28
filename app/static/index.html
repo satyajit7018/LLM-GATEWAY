@@ -383,11 +383,13 @@
     justify-content: center; padding: 0; cursor: help; }
   .composer-help:hover, .composer-help:focus-visible { color: var(--accent); border-color: var(--accent); }
   .jump-latest { position: absolute; left: 50%; transform: translateX(-50%); bottom: 128px; z-index: 15;
-    display: none; align-items: center; gap: 5px; font: inherit; font-size: 12.5px; font-weight: 550;
-    color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
-    padding: 7px 14px; cursor: pointer; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); }
-  .jump-latest.show { display: inline-flex; animation: rise .2s ease; }
-  .jump-latest:hover { border-color: var(--accent); color: var(--accent); }
+    display: none; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 600;
+    color: var(--text); background: var(--pop); border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 15px; cursor: pointer; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow);
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+    transition: border-color .18s ease, color .18s ease, transform .18s cubic-bezier(.34,1.2,.64,1); }
+  .jump-latest.show { display: inline-flex; animation: rise .2s cubic-bezier(.34,1.2,.64,1); }
+  .jump-latest:hover { border-color: var(--accent); color: var(--accent); transform: translateX(-50%) translateY(-2px); }
 
   /* ---- pet: a small hovering companion, EVE-from-WALL·E flavored — a
      glossy white ovoid body, a dark visor band with two glowing eyes, small
@@ -915,8 +917,26 @@
   .reset:hover { color: var(--miss); background: var(--miss-bg); }
 
   .msg { border: 1px solid var(--border); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px;
-    background: var(--panel); box-shadow: var(--shadow); contain: layout paint style; }
+    background: var(--panel); box-shadow: var(--shadow); contain: layout paint style;
+    animation: msgRise .24s cubic-bezier(.34,1.18,.64,1); }
+  @keyframes msgRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  /* Tactile button active states across all clickables */
+  button:active,
+  .btn:active,
+  .act-btn:active,
+  .send:active,
+  .new-chat:active,
+  .badge.btn:active,
+  .fab:active,
+  .icon-btn:active,
+  .chip:active,
+  .wchip:active,
+  .starter-card:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s ease-out !important;
+  }
   .msg .q { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-bottom: 9px; }
   .msg .q b { color: var(--text); font-weight: 600; }
   .msg .q .ts { margin-left: auto; font-size: 11.5px; color: var(--faint); }
@@ -2756,7 +2776,7 @@ function renderFeed() {
       el.addEventListener("click", () => {
         const item = starters[Number(el.dataset.idx)];
         if (!item) return;
-        const qEl = $("q");
+        const qEl = $("prompt");
         if (qEl) {
           qEl.value = item.prompt;
           qEl.style.height = "auto";
@@ -3793,12 +3813,32 @@ function renderShortcuts() {
 }
 function openShortcuts() { renderShortcuts(); $("shortcuts-modal").classList.add("open"); }
 function closeShortcuts() { $("shortcuts-modal").classList.remove("open"); }
+function closeAllPopovers() {
+  $("shortcuts-modal")?.classList.remove("open");
+  $("board-modal")?.classList.remove("open");
+  $("palette-modal")?.classList.remove("open");
+  $("palette-overlay")?.classList.remove("open");
+  $("metrics-pop")?.classList.remove("open");
+  $("quota-pop")?.classList.remove("open");
+  $("settings-pop")?.classList.remove("open");
+  $("attach-menu")?.classList.remove("open");
+  $("opts-menu")?.classList.remove("open");
+  $("acct-menu")?.classList.remove("open");
+  $("model-pop")?.classList.remove("open");
+  $("proj-pop")?.classList.remove("open");
+}
 $("shortcuts-close").addEventListener("click", closeShortcuts);
 $("shortcuts-modal").addEventListener("mousedown", (e) => { if (e.target === $("shortcuts-modal")) closeShortcuts(); });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "?" && !e.metaKey && !e.ctrlKey && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); openShortcuts(); }
-  else if (e.key === "Escape" && $("shortcuts-modal").classList.contains("open")) closeShortcuts();
-  else if (e.key === "Escape" && $("board-modal").classList.contains("open")) closeBoard();
+  if (e.key === "?" && !e.metaKey && !e.ctrlKey && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+    e.preventDefault(); openShortcuts();
+  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    const cs = $("chat-search");
+    if (cs) { cs.focus(); cs.select(); }
+  } else if (e.key === "Escape") {
+    closeAllPopovers();
+  }
 });
 
 // ---- task board (docs/task-board/PLAN.md) ----
@@ -5419,7 +5459,7 @@ function showToast(msg, type = "info", duration = 3500) {
   }
   const icons = { success: "✓", error: "✕", warn: "⚠", info: "ℹ" };
   const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
+  toast.className = `app-toast toast toast-${type}`;
   toast.innerHTML = `
     <span class="toast-icon">${icons[type] || "ℹ"}</span>
     <span class="toast-msg">${esc(msg)}</span>
