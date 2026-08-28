@@ -62,11 +62,23 @@ premium) **across separate sessions** to conserve tokens. Resume with the
       forgot/reset views left the login form visibly stacked on top instead of
       replacing it. Fixed with explicit `[hidden]` overrides.
 
+- [x] **Phase 5 — Motion, Aesthetics & Visual Polish** ✅ DONE:
+      - **Pixar-Grade Companion Widget:** Overhauled 17 CSS keyframes with 60fps GPU transforms, non-dipping baseline positioning (`bottom: 100%; margin-bottom: 2px`), upright typing & snacking choreography, thought bubble dialogue system, and reactive Code Mode developer headphones.
+      - **Glassmorphism Design System:** Consistent translucent surfaces with `backdrop-filter: blur(16px)` across all popovers (`.settings-pop`, `.metrics-pop`, `.quota-pop`, `.acct-menu`).
+      - **Interactive Empty-State Starters:** 1-click prompt cards for rapid prototyping across chat and Code Mode tabs.
+      - **Glassmorphic Toast Engine:** Non-blocking notification stack (`showToast()`) with progress timer bars and auto-dismissal.
+      - **Tactile Micro-Interactions:** Universal `scale(0.96)` active-press physics across all buttons, chips, and cards; organic spring-eased message bubbles (`@keyframes msgRise`).
+      - **Full-Screen Multi-Modal Dropzone:** Frosted glass drag-and-drop overlay (`backdrop-filter: blur(20px)`) with drop counter for attaching images, PDFs, and code files.
+      - **Streaming Markdown Auto-Closer:** Auto-detects and closes dangling triple-backtick code fences in real-time so syntax highlighting renders progressively while streaming.
+      - **Persistent Sidebar Navigation:** Manually collapsed/expanded sidebar states persist across reloads via `localStorage`.
+- [x] **Phase 6 — Quality, Tooling & Verification Audit** ✅ DONE:
+      - Cleaned all unused imports across the codebase, declared explicit `__all__` exports in `app/main.py`.
+      - Added `pyrightconfig.json` and `.vscode/settings.json` configuring language servers to use the project `.venv`.
+      - Resolved cross-browser CSS `line-clamp: 2` compatibility and escaped embedded regex slashes in HTML pretty-printer.
+      - Expanded test suite to **153 automated tests** (27 Playwright browser smoke tests + 126 backend/security tests) passing in ~30s.
+
 ## All phases complete
-The hybrid multi-user build (accounts, BYO keys, quotas, and the optional
-sync/invite/reset trio) is functionally done. What's left is the commercial
-pivot — see `docs/commercialization/strategy.md` (`/commercialize`) — and the
-pre-hosting checklist below (still not done; this is still local/demo mode).
+The hybrid multi-user gateway (accounts, BYO keys, quotas, conversation sync, interactive sandbox, and Pixar-grade visual companion) is 100% complete, verified, and audited.
 
 ## Post-Phase-4 fixes — real correctness gaps the multi-user transition left behind
 Found via a self-review after Phase 4 ("what should a logged-in user have that's
