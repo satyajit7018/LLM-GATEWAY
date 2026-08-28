@@ -76,9 +76,15 @@ premium) **across separate sessions** to conserve tokens. Resume with the
       - Added `pyrightconfig.json` and `.vscode/settings.json` configuring language servers to use the project `.venv`.
       - Resolved cross-browser CSS `line-clamp: 2` compatibility and escaped embedded regex slashes in HTML pretty-printer.
       - Expanded test suite to **153 automated tests** (27 Playwright browser smoke tests + 126 backend/security tests) passing in ~30s.
+- [x] **Phase 7 — Enterprise Scaling & Resilience Enhancements** ✅ DONE:
+      - **Upstream Stream Abort:** Graceful `GeneratorExit` catch on client stream disconnection to immediately close upstream provider connections and save API tokens.
+      - **LRU Semantic Eviction:** Upgraded semantic vector cache from FIFO to Least-Recently-Used eviction with hit timestamp tracking.
+      - **Persistent SQLite Vector Store:** Integrated `semantic_entries` table so computed prompt embeddings persist across gateway restarts.
+      - **Master Key Rotation CLI:** Built `scripts/rotate_keys.py` to re-encrypt stored BYO user API keys inside an atomic SQLite transaction upon master key rotation.
+      - Test suite expanded to **156 automated tests** passing in ~30s.
 
 ## All phases complete
-The hybrid multi-user gateway (accounts, BYO keys, quotas, conversation sync, interactive sandbox, and Pixar-grade visual companion) is 100% complete, verified, and audited.
+The hybrid multi-user gateway (accounts, BYO keys, quotas, conversation sync, interactive sandbox, persistent semantic cache, and Pixar-grade visual companion) is 100% complete, verified, and audited.
 
 ## Post-Phase-4 fixes — real correctness gaps the multi-user transition left behind
 Found via a self-review after Phase 4 ("what should a logged-in user have that's
