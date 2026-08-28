@@ -1307,6 +1307,172 @@
   .empty { color: var(--faint); text-align: center; padding: 40px 0; font-size: 14px; }
   .empty svg { width: 30px; height: 30px; opacity: .5; margin-bottom: 8px; display: block; margin-inline: auto; }
 
+  /* Starter prompts grid on empty chat */
+  .starters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin: 22px auto 0;
+    max-width: 520px;
+    text-align: left;
+  }
+  .starter-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: transform .18s cubic-bezier(.34,1.2,.64,1), border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    user-select: none;
+  }
+  .starter-card:hover {
+    transform: translateY(-2.5px);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 7%, var(--panel2));
+    box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  }
+  .starter-card:active {
+    transform: translateY(0) scale(.98);
+  }
+  .starter-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--text);
+  }
+  .starter-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+  .starter-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  /* Toast Notification Engine */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: min(92vw, 360px);
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--pop);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.12);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    font-size: 13px;
+    color: var(--text);
+    animation: toastIn .22s cubic-bezier(.34,1.3,.64,1);
+    transition: opacity .2s ease, transform .2s ease;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+  }
+  .toast.toast-out {
+    opacity: 0;
+    transform: translateY(-8px) scale(.95);
+  }
+  .toast-icon {
+    flex: none;
+    font-size: 15px;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .toast-msg {
+    flex: 1;
+    line-height: 1.35;
+    font-weight: 500;
+  }
+  .toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2.5px;
+    background: var(--accent);
+    width: 100%;
+    animation: toastProgress linear forwards;
+  }
+  .toast.toast-success .toast-progress { background: var(--hit); }
+  .toast.toast-error .toast-progress { background: var(--miss); }
+  .toast.toast-warn .toast-progress { background: var(--semantic); }
+  @keyframes toastIn {
+    0% { opacity: 0; transform: translateY(-12px) scale(.92); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes toastProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  /* Shimmer skeleton while waiting for first stream token */
+  .stream-skeleton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .stream-skeleton .skeleton-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: streamDotPulse 1.2s ease-in-out infinite;
+  }
+  .stream-skeleton .skeleton-dot:nth-child(2) { animation-delay: .2s; }
+  .stream-skeleton .skeleton-dot:nth-child(3) { animation-delay: .4s; }
+  .stream-skeleton .skeleton-text {
+    font-size: 12px;
+    font-weight: 550;
+    margin-left: 4px;
+    background: linear-gradient(90deg, var(--muted) 0%, var(--accent) 50%, var(--muted) 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmerText 2s infinite linear;
+  }
+  @keyframes streamDotPulse {
+    0%, 100% { opacity: .25; transform: scale(.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  @keyframes shimmerText {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* Smooth Theme Transition */
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: background-color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition-delay: 0s !important;
+  }
+
   /* Usage recap — a personal-stats card on the returning-user welcome
      screen, computed entirely from this account's own conversation history
      (local store + the per-user request log), never a server-wide figure. */
@@ -2562,10 +2728,45 @@ function renderFeed() {
     // Only Code tabs and Project chats get the recap — a plain normal chat's
     // welcome stays as-is, and a brand-new signup has no history yet either way.
     const recap = (!fresh && (code || !!conv.projectId)) ? renderUsageRecap() : "";
+    const starters = code ? [
+      { icon: "⚛️", title: "React State Counter", desc: "Build an interactive counter with presets and step buttons.", prompt: "Build an interactive React counter component with step presets and reset button." },
+      { icon: "📊", title: "HTML5 Canvas Chart", desc: "Create a 60fps animated line chart with hover tooltips.", prompt: "Create an interactive HTML5 Canvas 60fps real-time line chart with tooltips." },
+      { icon: "🎨", title: "Glassmorphic Card", desc: "Design a sleek frosted glass pricing card with toggle.", prompt: "Create a modern glassmorphic pricing card with monthly/annual toggle and smooth hover effects." },
+      { icon: "🕹️", title: "Retro Snake Arcade", desc: "Build a retro Snake arcade game with scoreboard and controls.", prompt: "Build a responsive retro Snake arcade game with smooth keyboard controls and score counter." }
+    ] : [
+      { icon: "⚡", title: "Benchmark Models", desc: "Compare speed & costs across GPT-4o, Claude 3.5, and Gemini.", prompt: "Compare the response latency, throughput, and token economics across GPT-4o, Claude 3.5 Sonnet, and Gemini 1.5 Pro." },
+      { icon: "🧩", title: "Build UI Component", desc: "Generate a Tailwind card widget with responsive preview.", prompt: "Build a modern glassmorphic dashboard stat widget with change indicators and mini sparkline." },
+      { icon: "🔍", title: "Semantic Cache Probe", desc: "Test how semantic similarity clustering reuses cached answers.", prompt: "Explain how semantic caching with vector embeddings prevents duplicate LLM round-trips." },
+      { icon: "🛡️", title: "Circuit Breaker Test", desc: "Simulate provider failover and verify zero-downtime resilience.", prompt: "How does the circuit breaker handle API 5xx errors and trigger automatic model fallback?" }
+    ];
+    const startersHtml = `<div class="starters-grid">${starters.map((s, idx) => `
+      <div class="starter-card" data-idx="${idx}">
+        <div class="starter-head"><span class="starter-icon">${s.icon}</span>${esc(s.title)}</div>
+        <div class="starter-desc">${esc(s.desc)}</div>
+      </div>
+    `).join("")}</div>`;
+
     box.innerHTML = `<div class="welcome"><div class="welcome-logo${code ? " code" : ""}">${logo}</div>` +
       `<div class="welcome-badge"><span class="dot"></span>${esc(badge)}</div>` +
       `<h3>${heading}</h3><p>${blurb}</p>` +
-      `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>${recap}</div>`;
+      `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>` +
+      startersHtml + `${recap}</div>`;
+
+    box.querySelectorAll(".starter-card").forEach(el => {
+      el.addEventListener("click", () => {
+        const item = starters[Number(el.dataset.idx)];
+        if (!item) return;
+        const qEl = $("q");
+        if (qEl) {
+          qEl.value = item.prompt;
+          qEl.style.height = "auto";
+          qEl.style.height = Math.min(qEl.scrollHeight, 200) + "px";
+          qEl.focus();
+          showToast(`Loaded "${item.title}" prompt! ✨`, "info", 2000);
+        }
+      });
+    });
+
     if (fresh) { const l = $("welcome-conn-link"); if (l) l.addEventListener("click", (e) => { e.stopPropagation(); openConnectionsFor(); }); }
     return;
   }
@@ -2573,7 +2774,9 @@ function renderFeed() {
   conv.messages.forEach((m, i) => {
     const div = document.createElement("div"); div.className = "msg";
     const q = m.q ? esc(m.q) : `<i style="color:var(--faint)">(no text)</i>`;
-    const ans = m.streaming ? esc(m.a) : (m.error ? "" : mdToHtml(m.a));
+    const ans = m.streaming
+      ? (m.a ? esc(m.a) : `<div class="stream-skeleton"><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-dot"></span><span class="skeleton-text">Thinking…</span></div>`)
+      : (m.error ? "" : mdToHtml(m.a));
     const editBtn = (m.q && !m.streaming) ? `<button class="q-edit" data-i="${i}" title="Edit & resend">✎</button>` : "";
     div.innerHTML =
       `<div class="q-row"><span class="who">You</span><div class="q-body">${q}</div>${editBtn}<span class="ts">${clock(m.at || conv.created)}</span></div>` +
@@ -2583,7 +2786,10 @@ function renderFeed() {
     box.appendChild(div);  // oldest → newest (composer is docked at the bottom)
   });
   box.querySelectorAll(".copy-btn").forEach(b => b.addEventListener("click", () => {
-    navigator.clipboard?.writeText(decodeURIComponent(b.dataset.copy)); const t = b.textContent; b.textContent = "Copied"; setTimeout(() => b.textContent = t, 1200);
+    navigator.clipboard?.writeText(decodeURIComponent(b.dataset.copy));
+    const t = b.textContent; b.textContent = "Copied";
+    showToast("Copied text to clipboard! 📋", "success", 2000);
+    setTimeout(() => b.textContent = t, 1200);
   }));
   box.querySelectorAll(".details-btn").forEach(b => b.addEventListener("click", () => {
     const d = b.parentElement.querySelector(".details"); const show = d.hasAttribute("hidden");
@@ -2592,7 +2798,9 @@ function renderFeed() {
   }));
   box.querySelectorAll(".code-copy").forEach(b => b.addEventListener("click", () => {
     const code = b.closest(".codewrap").querySelector("code").textContent;
-    navigator.clipboard?.writeText(code); const t = b.innerHTML; b.innerHTML = "✓ Copied"; b.classList.add("copied"); setTimeout(() => { b.innerHTML = t; b.classList.remove("copied"); }, 1200);
+    navigator.clipboard?.writeText(code); const t = b.innerHTML; b.innerHTML = "✓ Copied"; b.classList.add("copied");
+    showToast("Code block copied! 💻", "success", 2000);
+    setTimeout(() => { b.innerHTML = t; b.classList.remove("copied"); }, 1200);
   }));
   box.querySelectorAll(".code-btn.collapse").forEach(b => b.addEventListener("click", () => {
     const w = b.closest(".codewrap"); const c = w.classList.toggle("collapsed"); b.textContent = c ? "Expand" : "Collapse";
@@ -5200,6 +5408,36 @@ function buildHistory(conv) {
   return out;
 }
 
+// ---- Toast Notification Engine ----
+function showToast(msg, type = "info", duration = 3500) {
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+  const icons = { success: "✓", error: "✕", warn: "⚠", info: "ℹ" };
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || "ℹ"}</span>
+    <span class="toast-msg">${esc(msg)}</span>
+    <div class="toast-progress" style="animation-duration:${duration}ms"></div>
+  `;
+  container.appendChild(toast);
+
+  let dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    toast.classList.add("toast-out");
+    setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+  }
+  toast.addEventListener("click", dismiss);
+  setTimeout(dismiss, duration);
+}
+
 // ---- theme toggle (light / dark) ----
 const THEME_LS = "llm-gateway-theme";
 const _SUN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
@@ -5207,6 +5445,7 @@ const _MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 function currentTheme() { return document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
 function themeMode() { return localStorage.getItem(THEME_LS) || "system"; }
 function setTheme(mode) {
+  document.documentElement.classList.add("theme-transitioning");
   if (mode === "system") { document.documentElement.removeAttribute("data-theme"); localStorage.removeItem(THEME_LS); }
   else { document.documentElement.setAttribute("data-theme", mode); localStorage.setItem(THEME_LS, mode); }
   syncThemeSeg();
@@ -5215,6 +5454,7 @@ function setTheme(mode) {
   // wide-eyed blink (same look as noticing a dragged-in file).
   const pet = $("pet");
   if (pet) { pet.classList.add("pet-curious"); setTimeout(() => pet.classList.remove("pet-curious"), 500); }
+  setTimeout(() => document.documentElement.classList.remove("theme-transitioning"), 300);
 }
 function syncThemeSeg() { const m = themeMode(); document.querySelectorAll("#theme-seg button").forEach(b => b.classList.toggle("on", b.dataset.themeMode === m)); }
 document.querySelectorAll("#theme-seg button").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.themeMode)));
