@@ -309,3 +309,21 @@ def test_streaming_markdown_autocloses_unclosed_code_blocks(page, live_server):
     assert "codewrap" in html, "Streaming markdown should auto-close and render .codewrap container"
     assert "codebar" in html, "Streaming markdown should render .codebar terminal header"
     assert "def" in html, "Code content should be present"
+
+
+def test_sidebar_pinned_state_persists_in_localstorage(page, live_server):
+    """Menu button toggles and persists sidebar-slim state in localStorage across page reloads."""
+    page.goto(live_server)
+    # Ensure starting in unpinned state
+    page.evaluate("localStorage.setItem('llm-gateway-sidebar-pinned', '0')")
+    page.reload()
+    assert "sidebar-slim" not in (page.locator("body").get_attribute("class") or "")
+    # Click menu button to collapse & pin
+    page.locator("#menu-btn").click()
+    assert "sidebar-slim" in (page.locator("body").get_attribute("class") or "")
+    pinned = page.evaluate("localStorage.getItem('llm-gateway-sidebar-pinned')")
+    assert pinned == "1", "localStorage should store '1' when sidebar is pinned collapsed"
+    # Reload and verify persistence
+    page.reload()
+    assert "sidebar-slim" in (page.locator("body").get_attribute("class") or "")
+

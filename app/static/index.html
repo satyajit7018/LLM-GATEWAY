@@ -5397,13 +5397,23 @@ $("chat-search").addEventListener("keydown", (e) => { if (e.key === "Escape") { 
 $("menu-btn").addEventListener("click", () => {
   const conv = current();
   const slim = document.body.classList.contains("sidebar-slim") || document.body.classList.contains("project-focus");
-  if (!slim) { _sidebarPinned = true; localStorage.setItem(SIDEBAR_PIN_LS, "1"); updateSidebarSlim(); return; }
+  if (!slim) {
+    _sidebarPinned = true;
+    localStorage.setItem(SIDEBAR_PIN_LS, "1");
+    updateSidebarSlim();
+    showToast("Sidebar collapsed 📌", "info", 1800);
+    return;
+  }
   const typing = $("prompt").value.trim().length > 0;
   const streaming = _inFlight.has(conv.id);
   if (_sidebarPinned && !typing && !streaming && !conv.projectId) {
-    _sidebarPinned = false; localStorage.setItem(SIDEBAR_PIN_LS, "0"); updateSidebarSlim();
+    _sidebarPinned = false;
+    localStorage.setItem(SIDEBAR_PIN_LS, "0");
+    updateSidebarSlim();
+    showToast("Sidebar expanded 📖", "info", 1800);
   } else {
-    $("sidebar").classList.toggle("open"); $("backdrop").classList.toggle("show");
+    $("sidebar").classList.toggle("open");
+    $("backdrop").classList.toggle("show");
   }
 });
 $("backdrop").addEventListener("click", closeSidebar);
