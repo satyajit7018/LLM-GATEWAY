@@ -1,5 +1,4 @@
 """Tests for the local code runner and its HTTP guardrails."""
-import sys
 import time
 
 import pytest

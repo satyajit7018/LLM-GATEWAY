@@ -11,13 +11,13 @@ Covers:
 All tests call store/reqlog functions directly against the in-memory DB configured
 in conftest.py — no HTTP layer involved, no file I/O.
 """
-import sqlite3
-import time
+from __future__ import annotations
 
-import pytest
+import time
 
 import app.reqlog as reqlog
 import app.store as store
+
 
 
 # ---------------------------------------------------------------------------

@@ -26,6 +26,16 @@ from .state import current_user
 from .state import _cache, _semantic, _stats, _stats_lock  # noqa: F401
 from .routers.gateway import CODE_PREAMBLE, _apply_code_mode  # noqa: F401
 
+__all__ = [
+    "app",
+    "_cache",
+    "_semantic",
+    "_stats",
+    "_stats_lock",
+    "CODE_PREAMBLE",
+    "_apply_code_mode",
+]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
