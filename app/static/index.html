@@ -1493,6 +1493,55 @@
     transition-delay: 0s !important;
   }
 
+  /* Full-Screen Frosted Drag-and-Drop Overlay */
+  .drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--pop) 78%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity .22s ease, transform .22s cubic-bezier(.34,1.2,.64,1);
+    transform: scale(0.97);
+  }
+  body.dragging-files .drop-overlay {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .drop-box {
+    border: 2.5px dashed var(--accent);
+    border-radius: 26px;
+    padding: 36px 48px;
+    text-align: center;
+    background: var(--panel2);
+    box-shadow: var(--shadow), 0 0 36px color-mix(in srgb, var(--accent) 24%, transparent);
+    animation: dropPulse 2s ease-in-out infinite;
+    max-width: 420px;
+    width: 90vw;
+  }
+  .drop-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    margin: 0 auto 16px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .drop-icon-wrap svg { width: 32px; height: 32px; }
+  .drop-box h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: var(--text); }
+  .drop-box p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+  @keyframes dropPulse {
+    0%, 100% { border-color: var(--accent); }
+    50% { border-color: var(--accent2); }
+  }
+
   /* Usage recap — a personal-stats card on the returning-user welcome
      screen, computed entirely from this account's own conversation history
      (local store + the per-user request log), never a server-wide figure. */
@@ -1699,6 +1748,17 @@
     <a href="#" target="_blank" rel="noopener" id="publish-toast-link" class="wlink"></a>
     <button type="button" class="wlink" id="publish-toast-copy">Copy link</button>
     <button type="button" class="toast-x" id="publish-toast-close" aria-label="Dismiss">✕</button>
+  </div>
+</div>
+<div class="drop-overlay" id="drop-overlay">
+  <div class="drop-box">
+    <div class="drop-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+      </svg>
+    </div>
+    <h3>Drop files to attach</h3>
+    <p>Attach images, PDFs, code files, or documents directly to your prompt</p>
   </div>
 </div>
 <header>
@@ -2279,25 +2339,36 @@ $("in-camera").addEventListener("change", (e) => { [...e.target.files].forEach(a
 
 // ---- drag-and-drop + paste files/images anywhere in the chat ----
 const _hasFiles = (dt) => dt && [...(dt.types || [])].includes("Files");
-["dragenter", "dragover"].forEach(ev => document.addEventListener(ev, (e) => {
+let _dragCounter = 0;
+document.addEventListener("dragenter", (e) => {
   if (!_hasFiles(e.dataTransfer)) return;
   if (e.target.closest && e.target.closest("#monaco-host")) return;   // let the editor keep its own drop
-  e.preventDefault(); document.body.classList.add("dragging-files");
+  e.preventDefault();
+  _dragCounter++;
+  document.body.classList.add("dragging-files");
   const pet = $("pet"); if (pet) pet.classList.add("pet-curious");
-}));
-["dragleave", "dragend"].forEach(ev => document.addEventListener(ev, (e) => {
-  if (!e.relatedTarget) {   // only when leaving the window
+});
+document.addEventListener("dragover", (e) => {
+  if (!_hasFiles(e.dataTransfer)) return;
+  e.preventDefault();
+});
+document.addEventListener("dragleave", (e) => {
+  _dragCounter--;
+  if (_dragCounter <= 0) {
+    _dragCounter = 0;
     document.body.classList.remove("dragging-files");
     const pet = $("pet"); if (pet) pet.classList.remove("pet-curious");
   }
-}));
+});
 document.addEventListener("drop", (e) => {
+  _dragCounter = 0;
   document.body.classList.remove("dragging-files");
   { const pet = $("pet"); if (pet) pet.classList.remove("pet-curious"); }
   if (!e.dataTransfer || !e.dataTransfer.files.length) return;
   if (e.target.closest && e.target.closest("#monaco-host")) return;
   e.preventDefault();
   [...e.dataTransfer.files].forEach(addAttachment);
+  showToast(`Attached ${e.dataTransfer.files.length} file(s)! 📎`, "info", 2500);
   $("prompt").focus();
 });
 $("prompt").addEventListener("paste", (e) => {

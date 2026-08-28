@@ -278,5 +278,27 @@ def test_cmd_k_focuses_chat_search(page, live_server):
     assert is_focused, "#chat-search should be focused on Ctrl+k"
 
 
+def test_drag_and_drop_overlay_renders_on_dragenter(page, live_server):
+    """Dragging files into window adds .dragging-files class and displays frosted overlay."""
+    page.goto(live_server)
+    overlay = page.locator("#drop-overlay")
+    assert overlay.count() == 1
+    # Trigger dragenter
+    page.evaluate("""() => {
+        const dt = new DataTransfer();
+        const ev = new DragEvent('dragenter', { dataTransfer: dt, bubbles: true });
+        Object.defineProperty(dt, 'types', { value: ['Files'] });
+        document.dispatchEvent(ev);
+    }""")
+    assert "dragging-files" in (page.locator("body").get_attribute("class") or "")
+    # Trigger dragleave
+    page.evaluate("""() => {
+        const ev = new DragEvent('dragleave', { bubbles: true });
+        document.dispatchEvent(ev);
+    }""")
+    assert "dragging-files" not in (page.locator("body").get_attribute("class") or "")
+
+
+
 
 
