@@ -104,17 +104,14 @@ def _connect():
             user_id INTEGER,
             conv_id TEXT,
             created_at REAL NOT NULL)""")
-        # sessions' own primary key is token_hash (one row per login); every
-        # sign-out-everywhere, password change, and account deletion instead
-        # looks sessions up by user_id, which was an unindexed full scan.
+        _conn.execute("""CREATE TABLE IF NOT EXISTS semantic_entries (
+            prompt TEXT PRIMARY KEY,
+            response_json TEXT NOT NULL,
+            created_at REAL NOT NULL)""")
         _conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
-        # Bulk TTL purge (purge_expired_sessions) scans by expires_at — without
-        # this, every startup sweep and any future periodic cleanup is a full
-        # table scan that grows linearly with history.
         _conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
-        # Same for password_resets — a future sweep or report filtered by
-        # expires_at would otherwise full-scan the whole resets table.
         _conn.execute("CREATE INDEX IF NOT EXISTS idx_resets_expires ON password_resets(expires_at)")
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_semantic_created ON semantic_entries(created_at)")
         _conn.commit()
     return _conn
 
@@ -632,3 +629,41 @@ def get_published_page(slug: str) -> str | None:
         conn = _connect()
         row = conn.execute("SELECT html FROM published_pages WHERE slug = ?", (slug,)).fetchone()
     return row[0] if row else None
+
+
+# ---- persistent semantic cache storage ----
+def save_semantic_entry(prompt: str, response: dict):
+    """Persists a prompt-response embedding entry to SQLite."""
+    import json
+    with _lock:
+        conn = _connect()
+        conn.execute(
+            "INSERT INTO semantic_entries (prompt, response_json, created_at) VALUES (?,?,?) "
+            "ON CONFLICT(prompt) DO UPDATE SET response_json = excluded.response_json, created_at = excluded.created_at",
+            (prompt, json.dumps(response), time.time())
+        )
+        conn.commit()
+
+
+def load_all_semantic_entries() -> list[tuple[str, dict]]:
+    """Loads all persisted semantic entries on startup."""
+    import json
+    with _lock:
+        conn = _connect()
+        rows = conn.execute("SELECT prompt, response_json FROM semantic_entries ORDER BY created_at ASC").fetchall()
+    out = []
+    for prompt, resp_json in rows:
+        try:
+            out.append((prompt, json.loads(resp_json)))
+        except Exception:
+            continue
+    return out
+
+
+def clear_semantic_entries():
+    """Wipes persistent semantic cache entries."""
+    with _lock:
+        conn = _connect()
+        conn.execute("DELETE FROM semantic_entries")
+        conn.commit()
+

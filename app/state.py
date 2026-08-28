@@ -14,7 +14,7 @@ from .cache import Cache
 from .semantic_cache import SemanticCache
 
 _cache = Cache()
-_semantic = SemanticCache()
+_semantic = SemanticCache(persist=True)
 _stats = {"hits_exact": 0, "hits_semantic": 0, "misses": 0, "errors": 0,
           "rate_limited": 0, "circuit_open": 0}
 _stats_lock = threading.Lock()

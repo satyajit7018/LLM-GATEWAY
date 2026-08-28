@@ -1,13 +1,3 @@
-"""Semantic (near-duplicate) cache (Step 4).
-
-Keeps an in-memory matrix of normalized prompt embeddings. A query is a hit if
-its cosine similarity to any stored prompt is >= SEMANTIC_THRESHOLD. This is the
-"plain list with cosine similarity at small scale" store from the plan; because
-embeddings are L2-normalized, similarity is a single matrix-vector dot product.
-
-Swap EMBED_BACKEND=sbert (config) to get true paraphrase matching; swap this
-store for Chroma if you outgrow in-memory scale.
-"""
 import threading
 import time
 
@@ -18,13 +8,31 @@ from .embeddings import backend_name, embed
 
 
 class SemanticCache:
-    def __init__(self):
+    def __init__(self, persist: bool = False):
         self._vectors: list[np.ndarray] = []
         self._responses: list[dict] = []
         self._prompts: list[str] = []
         self._last_accessed: list[float] = []
         self._matrix = None  # cached np.vstack, rebuilt only when entries change
+        self._persist = persist
         self._lock = threading.Lock()
+
+        if self._persist:
+            self._load_persisted()
+
+
+    def _load_persisted(self):
+        try:
+            from . import store
+            entries = store.load_all_semantic_entries()
+            for prompt, resp in entries:
+                vec = embed(prompt)
+                self._vectors.append(vec)
+                self._responses.append(resp)
+                self._prompts.append(prompt)
+                self._last_accessed.append(time.time())
+        except Exception:
+            pass
 
     @property
     def backend_name(self) -> str:
@@ -59,6 +67,12 @@ class SemanticCache:
             self._prompts.clear()
             self._last_accessed.clear()
             self._matrix = None
+            if self._persist:
+                try:
+                    from . import store
+                    store.clear_semantic_entries()
+                except Exception:
+                    pass
 
     def add(self, prompt: str, response: dict):
         vec = embed(prompt)
@@ -76,4 +90,12 @@ class SemanticCache:
             self._prompts.append(prompt)
             self._last_accessed.append(now)
             self._matrix = None  # invalidate cached matrix
+
+            if self._persist:
+                try:
+                    from . import store
+                    store.save_semantic_entry(prompt, response)
+                except Exception:
+                    pass
+
 

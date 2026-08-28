@@ -1,9 +1,20 @@
 """Semantic cache tests (lexical embedder)."""
+import pytest
+
+from app import store
 from app.semantic_cache import SemanticCache
+
+
+@pytest.fixture(autouse=True)
+def _clean_store():
+    store.clear_semantic_entries()
+    yield
+    store.clear_semantic_entries()
 
 
 def _resp(text="Paris"):
     return {"text": text, "tokens": 1, "model": "m"}
+
 
 
 def test_near_duplicate_hits():
@@ -55,4 +66,21 @@ def test_lru_eviction_preserves_frequently_accessed_items(monkeypatch):
     assert sc.lookup("item 1") is not None
     assert sc.lookup("item 3") is not None
     assert sc.lookup("item 2") is None
+
+
+def test_semantic_cache_persistence_across_instances():
+    """Entries added to SemanticCache persist and are loaded by a new SemanticCache instance."""
+    sc1 = SemanticCache(persist=True)
+    sc1.clear()
+    sc1.add("What is machine learning?", _resp("AI subset"))
+    assert sc1.size == 1
+
+    # New instance simulates a fresh server restart
+    sc2 = SemanticCache(persist=True)
+    assert sc2.size == 1
+    hit = sc2.lookup("machine learning?")
+    assert hit is not None
+    assert hit[0]["text"] == "AI subset"
+    sc2.clear()
+
 
