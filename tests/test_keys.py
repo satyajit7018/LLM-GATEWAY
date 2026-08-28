@@ -177,3 +177,38 @@ def test_resolve_falls_back_to_app_key_without_override(monkeypatch):
     r = llm._resolve("groq/gpt-oss-20b", has_images=False)
     assert r["key"] == "sk-app-shared-key"
     assert r["byo"] is False
+
+
+def test_rotate_keys_reencrypts_user_keys_atomically(tmp_path):
+    from cryptography.fernet import Fernet
+    from scripts.rotate_keys import rotate_user_keys
+
+    old_key = Fernet.generate_key().decode()
+    new_key = Fernet.generate_key().decode()
+    db_file = str(tmp_path / "test_keys.db")
+
+    # Seed DB with old key encryption
+    conn = store.sqlite3.connect(db_file)
+    conn.execute("""CREATE TABLE user_keys (
+        user_id INTEGER, provider TEXT, ciphertext BLOB, last4 TEXT, created_at REAL,
+        PRIMARY KEY(user_id, provider))""")
+    f_old = Fernet(old_key.encode())
+    conn.execute("INSERT INTO user_keys VALUES (1, 'openai', ?, '5678', 100.0)", (f_old.encrypt(b"sk-user-test-12345678"),))
+    conn.commit()
+    conn.close()
+
+    # Run dry-run
+    count = rotate_user_keys(old_key, new_key, db_path=db_file, dry_run=True)
+    assert count == 1
+
+    # Run real rotation
+    count = rotate_user_keys(old_key, new_key, db_path=db_file, dry_run=False)
+    assert count == 1
+
+    # Verify decryptable with new key
+    conn = store.sqlite3.connect(db_file)
+    ct = conn.execute("SELECT ciphertext FROM user_keys WHERE user_id = 1").fetchone()[0]
+    conn.close()
+    f_new = Fernet(new_key.encode())
+    assert f_new.decrypt(ct).decode() == "sk-user-test-12345678"
+
