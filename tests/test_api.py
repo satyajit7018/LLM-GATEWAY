@@ -94,3 +94,15 @@ def test_log_summary_counts_requests():
     client.post("/generate", json={"prompt": "log me"})
     s = client.get("/log/summary").json()
     assert s["total"] >= 1
+
+
+def test_stream_client_disconnect_early_abort():
+    """Client breaking off early from /generate/stream closes cleanly with no 500 error."""
+    with client.stream("POST", "/generate/stream", json={"prompt": "stream abort test"}) as r:
+        assert r.status_code == 200
+        for line in r.iter_lines():
+            if line and line.startswith("data:"):
+                break   # simulate client closing after first frame
+    # Subsequent request still works cleanly
+    assert client.get("/healthz").status_code == 200
+

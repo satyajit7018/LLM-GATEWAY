@@ -450,6 +450,8 @@ def generate_stream_endpoint(req: GenerateRequest, request: Request, cache_mode:
                     yield frame({"delta": ev["delta"]})
                 elif "final" in ev:
                     result = ev["final"]
+        except GeneratorExit:
+            return   # Client disconnected / aborted stream; cleanly close without logging false upstream error
         except LLMError as exc:
             # Some providers' streaming endpoints are flaky (e.g. Gemini's
             # OpenAI-compat layer 503s intermittently). If nothing streamed yet,
