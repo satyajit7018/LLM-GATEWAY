@@ -2768,7 +2768,7 @@ function renderFeed() {
 
     box.innerHTML = `<div class="welcome"><div class="welcome-logo${code ? " code" : ""}">${logo}</div>` +
       `<div class="welcome-badge"><span class="dot"></span>${esc(badge)}</div>` +
-      `<h3>${heading}</h3><p>${blurb}</p>` +
+      `<h3>${heading}</h3>` +
       `<div class="cap-strip">${caps.map(c => `<span class="cap">${check}${c[0]}</span>`).join("")}</div>` +
       startersHtml + `${recap}</div>`;
 
