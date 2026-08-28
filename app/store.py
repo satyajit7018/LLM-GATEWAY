@@ -6,6 +6,20 @@ PBKDF2-HMAC-SHA256 (stdlib) using a per-user salt. Session tokens are random
 and opaque; only their hash is stored, so a DB leak doesn't hand out live
 sessions. Users' own provider API keys are encrypted at rest with Fernet
 (symmetric AES) — see `_fernet()`.
+
+# ── Schema summary ─────────────────────────────────────────────────────────
+# users             id, email (UNIQUE), password_hash, created_at, email_verified
+# sessions          token_hash (PK), user_id, created_at, expires_at
+#                   Indexes: idx_sessions_user(user_id), idx_sessions_expires(expires_at)
+# user_keys         (user_id, provider) PK, ciphertext (Fernet-encrypted), last4, created_at
+# usage             (user_id, day) PK, tokens, requests  — free-tier daily tally
+# invite_codes      code (PK), created_at, used_by, used_at
+# password_resets   token_hash (PK), user_id, created_at, expires_at, used
+#                   Indexes: idx_resets_expires(expires_at)
+# email_verifications token_hash (PK), user_id, created_at, expires_at, used
+# user_store        user_id (PK), data (JSON blob), updated_at — server-side sync
+# published_pages   slug (PK), html, user_id, conv_id, created_at
+# ────────────────────────────────────────────────────────────────────────────
 """
 from __future__ import annotations   # PEP 604 `X | None` hints on Python 3.9
 
@@ -94,6 +108,13 @@ def _connect():
         # sign-out-everywhere, password change, and account deletion instead
         # looks sessions up by user_id, which was an unindexed full scan.
         _conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        # Bulk TTL purge (purge_expired_sessions) scans by expires_at — without
+        # this, every startup sweep and any future periodic cleanup is a full
+        # table scan that grows linearly with history.
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+        # Same for password_resets — a future sweep or report filtered by
+        # expires_at would otherwise full-scan the whole resets table.
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_resets_expires ON password_resets(expires_at)")
         _conn.commit()
     return _conn
 
@@ -101,6 +122,10 @@ def _connect():
 def init_db():
     with _lock:
         _connect()
+    # Sweep expired sessions once at startup so stale rows from inactive
+    # accounts don't accumulate across server restarts indefinitely.
+    purge_expired_sessions()
+
 
 
 # ---- password hashing (PBKDF2, stdlib) ----
@@ -176,11 +201,18 @@ def delete_account(user_id: int):
 
 
 def verify_user(email: str, password: str) -> dict | None:
+    """Authenticate by email + password. Returns {id, email, email_verified} or None.
+
+    Fetches 4 columns from users: id, email, password_hash, email_verified.
+    password_hash is used locally for PBKDF2 verification and is never
+    included in the returned dict.
+    """
     email = _norm_email(email)
     with _lock:
         conn = _connect()
         row = conn.execute(
-            "SELECT id, email, password_hash, email_verified FROM users WHERE email = ?", (email,)).fetchone()
+            "SELECT id, email, password_hash, email_verified FROM users WHERE email = ?",
+            (email,)).fetchone()
     if not row or not _verify_password(password, row[2]):
         return None
     return {"id": row[0], "email": row[1], "email_verified": bool(row[3])}
@@ -239,21 +271,52 @@ def create_session(user_id: int) -> str:
 
 
 def user_for_session(token: str) -> dict | None:
+    """Return {id, email} for a live, unexpired session token, or None.
+
+    Expiry is enforced in SQL (WHERE expires_at > ?) — no Python-side
+    comparison needed and no lock time wasted fetching a column just to
+    discard it. On a miss we eagerly delete the row if it exists but was
+    expired, so dead sessions don't accumulate from accounts that stop
+    logging in (purge_expired_sessions() handles the bulk sweep at startup).
+    """
     if not token:
         return None
+    tok_hash = _tok_hash(token)
+    now = time.time()
     with _lock:
         conn = _connect()
+        # Push expiry into SQL — the DB never returns an expired row.
         row = conn.execute(
-            "SELECT s.user_id, s.expires_at, u.email FROM sessions s "
-            "JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?",
-            (_tok_hash(token),)).fetchone()
+            "SELECT s.user_id, u.email FROM sessions s "
+            "JOIN users u ON u.id = s.user_id "
+            "WHERE s.token_hash = ? AND s.expires_at > ?",
+            (tok_hash, now)).fetchone()
         if not row:
-            return None
-        if row[1] < time.time():
-            conn.execute("DELETE FROM sessions WHERE token_hash = ?", (_tok_hash(token),))
+            # Eagerly delete if the token exists but was expired — prevents
+            # stale rows accumulating from sessions that were never explicitly
+            # logged out. No-op if the token was simply unknown.
+            conn.execute(
+                "DELETE FROM sessions WHERE token_hash = ? AND expires_at <= ?",
+                (tok_hash, now))
             conn.commit()
             return None
-    return {"id": row[0], "email": row[2]}
+    return {"id": row[0], "email": row[1]}
+
+
+def purge_expired_sessions():
+    """Delete all expired sessions in one sweep.
+
+    Called once at startup (from init_db) so rows left by inactive accounts
+    don't accumulate indefinitely. May also be called periodically from a
+    maintenance job without any issue — it's idempotent and safe to run
+    concurrently with live traffic.
+    """
+    with _lock:
+        conn = _connect()
+        conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (time.time(),))
+        conn.commit()
+
+
 
 
 def delete_session(token: str):
@@ -331,7 +394,14 @@ def set_user_key(user_id: int, provider: str, api_key: str):
 
 
 def get_user_key(user_id: int, provider: str) -> str | None:
-    """Decrypted key for one provider, or None if the user hasn't added one."""
+    """Decrypted plaintext key for one provider, or None if not added.
+
+    Fetches only `ciphertext` from user_keys — `last4` is not retrieved here
+    (it is only needed for the keys-listing UI and is fetched in
+    list_user_keys() instead). Decryption failures return None rather than
+    crashing a request, treating a corrupted or undecryptable ciphertext the
+    same as a missing key.
+    """
     with _lock:
         conn = _connect()
         row = conn.execute(
@@ -346,7 +416,11 @@ def get_user_key(user_id: int, provider: str) -> str | None:
 
 
 def list_user_keys(user_id: int) -> list[dict]:
-    """[{provider, last4}] — never the actual key."""
+    """[{provider, last4}] for all providers this user has added — never the actual key.
+
+    This is the only function that fetches `last4`; get_user_key() fetches
+    only `ciphertext` since the last4 hint is not needed for decryption.
+    """
     with _lock:
         conn = _connect()
         rows = conn.execute(
@@ -437,17 +511,21 @@ def create_reset_token(user_id: int) -> str:
 
 
 def user_id_for_reset_token(token: str) -> int | None:
-    """The user this (unexpired, unused) reset token belongs to, or None."""
+    """The user this (unexpired, unused) reset token belongs to, or None.
+
+    Expiry and single-use checks are enforced in SQL (used = 0 AND
+    expires_at > ?) — no Python-side comparison needed.
+    """
     if not token:
         return None
     with _lock:
         conn = _connect()
         row = conn.execute(
-            "SELECT user_id, expires_at, used FROM password_resets WHERE token_hash = ?",
-            (_tok_hash(token),)).fetchone()
-    if not row or row[2] or row[1] < time.time():
-        return None
-    return row[0]
+            "SELECT user_id FROM password_resets "
+            "WHERE token_hash = ? AND used = 0 AND expires_at > ?",
+            (_tok_hash(token), time.time())).fetchone()
+    return row[0] if row else None
+
 
 
 def consume_reset_token(token: str):
@@ -482,17 +560,25 @@ def create_verification_token(user_id: int) -> str:
 def verify_email_token(token: str) -> int | None:
     """Marks the token used and the owning user's email verified in one
     transaction. Returns the user_id on success, None if the token is
-    missing, expired, or already used."""
+    missing, expired, or already used.
+
+    Expiry and single-use checks are enforced in SQL (used = 0 AND
+    expires_at > ?) — only user_id is fetched, since that's all the
+    subsequent UPDATEs need.
+    """
     if not token:
         return None
+    tok_hash = _tok_hash(token)
+    now = time.time()
     with _lock:
         conn = _connect()
         row = conn.execute(
-            "SELECT user_id, expires_at, used FROM email_verifications WHERE token_hash = ?",
-            (_tok_hash(token),)).fetchone()
-        if not row or row[2] or row[1] < time.time():
+            "SELECT user_id FROM email_verifications "
+            "WHERE token_hash = ? AND used = 0 AND expires_at > ?",
+            (tok_hash, now)).fetchone()
+        if not row:
             return None
-        conn.execute("UPDATE email_verifications SET used = 1 WHERE token_hash = ?", (_tok_hash(token),))
+        conn.execute("UPDATE email_verifications SET used = 1 WHERE token_hash = ?", (tok_hash,))
         conn.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (row[0],))
         conn.commit()
         return row[0]

@@ -3,6 +3,14 @@
 Every /generate call is appended as one row so real before/after numbers can be
 reconstructed later (see scripts/report.py). SQLite keeps it dependency-free and
 durable across restarts; set REQLOG_PATH=:memory: to disable persistence.
+
+# ── Schema summary ─────────────────────────────────────────────────────────
+# requests   ts (REAL), result (TEXT: 'miss'|'exact'|'semantic'|'error'),
+#            cache_type, model, tokens (INTEGER), latency_ms (REAL),
+#            cost_usd (REAL), has_images (INTEGER 0/1), has_files (INTEGER 0/1),
+#            streamed (INTEGER 0/1), user_id (INTEGER, nullable — anonymous callers)
+#            Indexes: idx_requests_user(user_id), idx_requests_ts(ts)
+# ────────────────────────────────────────────────────────────────────────────
 """
 import os
 import sqlite3
@@ -44,6 +52,10 @@ def _connect():
         # every page load) was a full table scan that only gets slower as
         # history accumulates.
         _conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_user ON requests(user_id)")
+        # Time-range queries (e.g. "last 7 days", future dashboard date filters)
+        # scan by ts — without this, every such query is a full table scan that
+        # grows linearly as request history accumulates.
+        _conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_ts ON requests(ts)")
         _conn.commit()
     return _conn
 

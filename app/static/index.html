@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LLM Gateway</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232563eb'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='9' cy='12' r='4.3'/%3E%3Ccircle cx='15' cy='12' r='4.3'/%3E%3Cline x1='4.3' y1='12' x2='2' y2='12'/%3E%3Cline x1='19.7' y1='12' x2='22' y2='12'/%3E%3Cline x1='9' y1='7.7' x2='9' y2='5.2'/%3E%3Cline x1='15' y1='16.3' x2='15' y2='18.8'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   /* Neutral, restrained palette — one accent color, used sparingly. Light =
      default; dark applies via system preference unless the user forces a
@@ -17,7 +20,7 @@
     --miss: #c8352f; --miss-bg: rgba(200,53,47,.09);
     --shadow: 0 1px 2px rgba(20,20,30,.04), 0 6px 16px rgba(20,20,30,.05);
     --glow: 37,99,235;
-    --side: #fbfbfc; --pop: #ffffff;
+    --side: #fbfbfc; --pop: rgba(255,255,255,.90);
     --glass-blur: 20px; --glass-hi: rgba(255,255,255,.6);
   }
   :root[data-theme="dark"] {
@@ -28,7 +31,7 @@
     --miss: #e5645d; --miss-bg: rgba(229,100,93,.10);
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     --glow: 91,141,239;
-    --side: #0e1015; --pop: #14171d;
+    --side: #0e1015; --pop: rgba(20,23,29,.88);
     --glass-blur: 20px; --glass-hi: rgba(255,255,255,.06);
   }
   @media (prefers-color-scheme: dark) {
@@ -40,15 +43,45 @@
       --miss: #e5645d; --miss-bg: rgba(229,100,93,.10);
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
       --glow: 91,141,239;
-      --side: #0e1015; --pop: #14171d;
+      --side: #0e1015; --pop: rgba(20,23,29,.88);
       --glass-blur: 20px; --glass-hi: rgba(255,255,255,.06);
     }
   }
   * { box-sizing: border-box; }
+  /* Branded text selection */
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    color: var(--text);
+  }
+  /* Accessible focus-visible glow ring */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent) !important;
+  }
+  /* Sleek custom scrollbars across all scroll containers */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--border) 80%, transparent);
+    border-radius: 999px;
+    transition: background .2s ease;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--border) 80%, transparent) transparent;
+  }
   html, body { margin: 0; height: 100%; }
   body {
     color: var(--text); height: 100vh; overflow: hidden;
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    font: 15px/1.55 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased; display: grid; grid-template-rows: auto 1fr;
     /* One soft, low-opacity ambient glow — not a wall of colored blobs. */
     background:
@@ -115,7 +148,9 @@
   .qlive::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--hit); animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
   .quota-pop { display: none; position: absolute; top: 54px; right: 22px; z-index: 40; width: 268px;
-    background: var(--pop); border: 1px solid var(--border); border-radius: 18px; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); padding: 14px 16px; }
+    background: var(--pop); border: 1px solid var(--border); border-radius: 18px;
+    box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); padding: 14px 16px;
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
   .quota-pop.open { display: block; animation: rise .16s ease; }
   .quota-pop h4 { margin: 0 0 2px; font-size: 13px; }
   .qfor { font-size: 11.5px; color: var(--accent); font-weight: 600; margin: 0 0 10px; }
@@ -127,7 +162,9 @@
 
   /* settings popover */
   .settings-pop { display: none; position: absolute; top: 54px; right: 22px; z-index: 41; width: 268px;
-    background: var(--pop); border: 1px solid var(--border); border-radius: 18px; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); padding: 14px 16px; }
+    background: var(--pop); border: 1px solid var(--border); border-radius: 18px;
+    box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); padding: 14px 16px;
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
   .settings-pop.open { display: block; animation: rise .16s ease; }
   .settings-pop h4 { margin: 0 0 12px; font-size: 13px; }
   .set-section-label { font-size: 11.5px; font-weight: 680; color: var(--muted); letter-spacing: .01em; margin: 0 0 6px; }
@@ -166,7 +203,8 @@
   #acct-menu-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
   .acct-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 5;
     background: var(--pop); border: 1px solid var(--border); border-radius: 14px; padding: 4px;
-    box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); animation: rise .14s ease; }
+    box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow); animation: rise .14s ease;
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
   .acct-menu[hidden] { display: none; }
   .acct-menu-item { display: block; width: 100%; text-align: left; font: inherit; font-size: 12.5px;
     font-weight: 550; color: var(--text); background: none; border: 0; border-radius: 10px;
@@ -228,7 +266,8 @@
   .opts-btn.active { color: var(--accent); }
   .opts-btn.active::after { content: ""; position: absolute; top: 2px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
   .opts-menu { display: none; position: absolute; bottom: 34px; left: 0; z-index: 20; min-width: 150px;
-    background: var(--pop); border: 1px solid var(--border); border-radius: 11px; box-shadow: var(--shadow); padding: 8px; }
+    background: var(--pop); border: 1px solid var(--border); border-radius: 11px; box-shadow: var(--shadow); padding: 8px;
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
   .opts-menu.open { display: flex; flex-direction: column; gap: 8px; animation: rise .14s ease; }
 
   .body { display: grid; grid-template-columns: 258px 1fr; min-height: 0; }
@@ -358,8 +397,8 @@
      tracking and hover/poke reactions live on the .pet-rig/.pet-lift/
      .pet-eye-wrap groups so they compose with, rather than fight, the mood
      transforms on .pet/.pet-body/.pet-eye themselves. ---- */
-  .pet { position: absolute; right: 20px; bottom: calc(100% - 12px); z-index: 16; width: 62px; height: 67px;
-    cursor: pointer; animation: pet-hover 3.6s ease-in-out infinite; user-select: none; }
+  .pet { position: absolute; right: 20px; bottom: 100%; margin-bottom: 2px; z-index: 16; width: 62px; height: 67px;
+    cursor: pointer; animation: pet-hover 4.8s ease-in-out infinite; user-select: none; }
   .pet svg { width: 100%; height: 100%; overflow: visible; }
   .pet svg * { transform-box: fill-box; transform-origin: center; }
   .pet-rig, .pet-lift { transform-box: view-box; transform-origin: 36px 40px; }
@@ -392,9 +431,102 @@
   }
   .pet-eye-r { animation-delay: .06s; }
   .pet-lift { transition: transform .22s cubic-bezier(.34,1.32,.64,1); }
-  @keyframes pet-hover { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-1.5deg); } }
-  @keyframes pet-thruster { 0%, 100% { opacity: .18; transform: scaleX(1); } 50% { opacity: .32; transform: scaleX(.85); } }
-  @keyframes pet-blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.12); } }
+  @keyframes pet-hover {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25%      { transform: translateY(-4px) rotate(-1.2deg); }
+    50%      { transform: translateY(-7.5px) rotate(0deg); }
+    75%      { transform: translateY(-3.5px) rotate(1.2deg); }
+  }
+  @keyframes pet-thruster {
+    0%, 100% { opacity: .20; transform: scaleX(1) scaleY(1); }
+    30%      { opacity: .36; transform: scaleX(.82) scaleY(1.25); }
+    60%      { opacity: .24; transform: scaleX(1.08) scaleY(.88); }
+    85%      { opacity: .32; transform: scaleX(.90) scaleY(1.15); }
+  }
+  @keyframes pet-blink {
+    0%, 44%, 58%, 100% { transform: scaleY(1); }
+    47%, 55%           { transform: scaleY(.08); }
+    50%                { transform: scaleY(0.9); }
+    52%                { transform: scaleY(.08); }
+  }
+
+  /* Thought bubble / micro-barks (Option 2) */
+  .pet-bubble {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    right: 50%;
+    transform: translateX(50%) translateY(4px) scale(0.90);
+    transform-origin: bottom center;
+    background: var(--pop);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-radius: 12px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    opacity: 0;
+    transition: opacity .18s ease, transform .22s cubic-bezier(.34, 1.56, .64, 1);
+    z-index: 30;
+  }
+  .pet-bubble::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 50%;
+    transform: translateX(50%);
+    border: 5px solid transparent;
+    border-top-color: var(--pop);
+  }
+  .pet-bubble::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 50%;
+    transform: translateX(50%);
+    border: 6px solid transparent;
+    border-top-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  }
+  .pet-bubble.visible {
+    opacity: 1;
+    transform: translateX(50%) translateY(0) scale(1);
+  }
+
+  /* Accessories (Option 1: Code Mode Headphones) */
+  .pet-accessory {
+    opacity: 0;
+    transform: scale(0.82) translateY(-2px);
+    transform-origin: 36px 24px;
+    transition: opacity .25s ease, transform .25s cubic-bezier(.34, 1.56, .64, 1);
+    pointer-events: none;
+  }
+  .pet.has-headphones .pet-acc-headphones {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .pet-headband {
+    stroke: var(--text);
+    opacity: .88;
+    transition: stroke .3s ease;
+  }
+  .pet-earpad {
+    fill: var(--panel2);
+    stroke: var(--accent);
+    stroke-width: 1.3;
+    transition: stroke .3s ease;
+  }
+  .pet-ear-glow {
+    fill: var(--accent);
+    animation: earGlowPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes earGlowPulse {
+    0%, 100% { opacity: .7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.25); }
+  }
 
   @media (min-width: 761px) and (max-width: 900px) { .pet { width: 48px; height: 52px; right: 8px; } }
 
@@ -410,68 +542,116 @@
   @keyframes pet-ring { 0% { transform: translate(-50%, -50%) scale(.75); opacity: .55; } 100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; } }
 
   /* Happy: a cache hit just landed — instant answer, no real call needed. */
-  .pet[data-mood="happy"] { animation: pet-happy .7s ease; }
+  .pet[data-mood="happy"] { animation: pet-happy .75s cubic-bezier(.34, 1.4, .64, 1); }
   .pet[data-mood="happy"] .pet-body { stroke: var(--hit); }
   .pet[data-mood="happy"] .pet-glow { fill: var(--hit); }
   .pet[data-mood="happy"] .pet-eye { animation: none; fill: var(--hit); transform: scale(1.15) translateY(-1px); }
-  @keyframes pet-happy { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.12) translateY(-9px); } 100% { transform: scale(1) translateY(0); } }
+  @keyframes pet-happy {
+    0%, 100% { transform: translateY(0) scale(1); }
+    15%      { transform: translateY(0) scaleX(1.14) scaleY(0.86); }
+    45%      { transform: translateY(-16px) scaleX(0.90) scaleY(1.14) rotate(-3deg); }
+    65%      { transform: translateY(-14px) scale(1) rotate(2deg); }
+    85%      { transform: translateY(-1px) scaleX(1.06) scaleY(0.94); }
+  }
 
   /* Sad: the last request failed — eyes droop, body sinks and dims. */
-  .pet[data-mood="sad"] { animation: pet-slump .5s ease; }
+  .pet[data-mood="sad"] { animation: pet-slump .6s ease; }
   .pet[data-mood="sad"] .pet-body { stroke: var(--miss); }
   .pet[data-mood="sad"] .pet-glow { fill: var(--miss); opacity: .15; }
   .pet[data-mood="sad"] .pet-eye { animation: none; fill: var(--miss); transform: scaleY(.5) translateY(2px); }
   .pet[data-mood="sad"] .pet-eye-l { transform: scaleY(.5) translateY(2px) rotate(-6deg); }
   .pet[data-mood="sad"] .pet-eye-r { transform: scaleY(.5) translateY(2px) rotate(6deg); }
-  @keyframes pet-slump { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(3px) rotate(3deg); } }
+  @keyframes pet-slump {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    35%      { transform: translateY(-1px) rotate(4deg) scaleX(1.04) scaleY(0.95); }
+    70%      { transform: translateY(-0.5px) rotate(2deg); }
+  }
+
+  /* Error: network/server failure — she's alarmed, not discouraged.
+     pet-shake uses translateX + rotate only, never translateY, so it cannot
+     fight .pet-lift's vertical transforms or pet-slump's own keyframes.
+     Red glow (separate thruster variant so it can't fight the always-on
+     pet-thruster animation) + very tight squint (.28 vs sad's .5) makes
+     "error" visually unmistakable vs "sad" at a glance. */
+  .pet[data-mood="error"] { animation: pet-shake .52s ease; }
+  .pet[data-mood="error"] .pet-body { stroke: var(--miss); }
+  .pet[data-mood="error"] .pet-arm { stroke: var(--miss); }
+  .pet[data-mood="error"] .pet-glow { fill: var(--miss); opacity: .22; animation: pet-thruster-err 3.6s ease-in-out infinite; }
+  .pet[data-mood="error"] .pet-eye {
+    animation: none;
+    fill: var(--miss);
+    transform: scaleY(.28) translateY(1.5px);   /* tighter than sad's .5 */
+  }
+  @keyframes pet-shake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    12%      { transform: translateX(-4.5px) rotate(-3.2deg); }
+    24%      { transform: translateX(4.5px) rotate(3.2deg); }
+    38%      { transform: translateX(-3.5px) rotate(-2.4deg); }
+    52%      { transform: translateX(3.5px) rotate(2.4deg); }
+    68%      { transform: translateX(-2px) rotate(-1.2deg); }
+    84%      { transform: translateX(1.5px) rotate(1deg); }
+  }
+  @keyframes pet-thruster-err {
+    0%, 100% { opacity: .18; transform: scaleX(1) scaleY(1); }
+    25%      { opacity: .35; transform: scaleX(.75) scaleY(1.4) translateY(1.8px); }
+    50%      { opacity: .12; transform: scaleX(1.15) scaleY(.75) translateY(-0.8px); }
+    75%      { opacity: .38; transform: scaleX(.78) scaleY(1.35) translateY(1.5px); }
+  }
+
 
   @media (prefers-reduced-motion: reduce) {
     .pet, .pet *, .pet[data-mood]::after { animation: none !important; transition: none !important; }
   }
-  @media (max-width: 760px), (hover: none), (pointer: coarse) { .pet { display: none; } }
+  /* Mobile / touch: show a simplified fixed mood-tint instead of hiding
+     the pet entirely. Cursor tracking + rAF are still disabled (initPet()
+     guards on pointer:coarse), but the body + glow colour-shifts from
+     data-mood still show, so emotional feedback isn't absent on touch. */
+  @media (max-width: 760px), (hover: none), (pointer: coarse) {
+    .pet {
+      display: block;
+      position: fixed;
+      bottom: 14px; right: 14px;
+      width: 38px; height: 40px;
+      pointer-events: none;   /* no poke/click on touch */
+      z-index: 200;
+    }
+    /* Suppress interaction-driven states — mood tint only on mobile */
+    .pet.pet-near,
+    .pet.pet-curious { --near-y: 0px; --near-scale: 1; --arm-near-rot: 0deg; --arm-near-y: 0px; }
+    /* No props on mobile — clean silhouette only */
+    .pet-prop { display: none; }
+  }
 
-  /* Hover-proximity perk: the cursor got close (see _petFrame's hysteresis) —
-     a little lift and a brighter glow, like she noticed. The lift lives on
-     .pet-rig (see its --near-x/--near-y/--near-scale vars below) rather
-     than .pet-lift directly, so it still shows even while an idle-routine
-     phase (cook/eat/work/wander) is actively animating .pet-lift — a plain
-     transform there would otherwise be silently overridden by the phase's
-     animation regardless of specificity. Same story for the arms' rotate/
-     translateY, blended into each phase's own keyframes via --arm-near-*. */
+  /* Hover-proximity perk */
   .pet.pet-near .pet-arm-l { transform: translateX(-1.6px); }
   .pet.pet-near .pet-arm-r { transform: translateX(1.6px); }
   .pet.pet-near .pet-eye { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 85%, transparent)); }
-  /* .pet-glow has its own always-on pulse (pet-thruster) driving `opacity` —
-     a plain `opacity` override here would never win against that active
-     animation, so brightening it means swapping in a boosted version of the
-     same animation instead. (This one predates the routine work — just
-     caught in the same pass.) */
   .pet.pet-near .pet-glow { animation: pet-thruster-near 3.6s ease-in-out infinite; }
-  @keyframes pet-thruster-near { 0%, 100% { opacity: .3; transform: scaleX(1); } 50% { opacity: .5; transform: scaleX(.85); } }
+  @keyframes pet-thruster-near {
+    0%, 100% { opacity: .32; transform: scaleX(1) scaleY(1); }
+    50%      { opacity: .55; transform: scaleX(.80) scaleY(1.35) translateY(1.5px); }
+  }
   .pet.pet-near .pet-rig, .pet.pet-curious .pet-rig { transition: transform .18s ease-out; }
   .pet.pet-near .pet-rig { --near-y: -2.5px; --near-scale: 1.06; }
   .pet.pet-near, .pet.pet-curious { --arm-near-rot: 6deg; --arm-near-y: -1.6px; }
 
   /* Poke: clicked — a quick squash-and-stretch bounce (never touches mood). */
-  .pet.pet-poke .pet-lift { animation: pet-poke .62s cubic-bezier(.34,1.28,.64,1); }
+  .pet.pet-poke .pet-lift { animation: pet-poke .64s cubic-bezier(.34,1.4,.64,1); }
   @keyframes pet-poke {
-    0% { transform: none; }
-    25% { transform: translateY(2px) scaleX(1.18) scaleY(.86); }
-    55% { transform: translateY(-7px) scaleX(.92) scaleY(1.12); }
-    100% { transform: none; }
+    0%, 100% { transform: translateY(0) scale(1); }
+    18%      { transform: translateY(0) scaleX(1.22) scaleY(0.80); }
+    48%      { transform: translateY(-12px) scaleX(0.88) scaleY(1.16) rotate(-2deg); }
+    75%      { transform: translateY(-1px) scaleX(1.04) scaleY(0.96) rotate(1deg); }
   }
-  /* Double-click: a distinct trick, not just a bigger poke — a full spin. */
-  .pet.pet-spin .pet-lift { animation: pet-spin .7s cubic-bezier(.45,1.6,.4,1); }
+  /* Double-click: a distinct trick, not just a bigger poke — an acrobatic 3D barrel roll. */
+  .pet.pet-spin .pet-lift { animation: pet-spin .72s cubic-bezier(.34,1.4,.64,1); }
   @keyframes pet-spin {
-    0% { transform: rotate(0deg) scale(1); }
-    40% { transform: rotate(200deg) scale(.92); }
-    100% { transform: rotate(360deg) scale(1); }
+    0%   { transform: rotate(0deg) scale(1) translateY(0); }
+    25%  { transform: rotate(85deg) scale(0.92) translateY(-4px); }
+    55%  { transform: rotate(230deg) scale(1.08) translateY(-9px); }
+    80%  { transform: rotate(330deg) scale(0.96) translateY(-3px); }
+    100% { transform: rotate(360deg) scale(1) translateY(0); }
   }
-  /* Poke follow-up: a beat after the bounce, she pulls out her laptop and
-     types for a moment — reuses the exact work-phase assets/keyframes
-     (laptop prop, typing arms/eyes/lines) rather than duplicating them, so
-     the two stay visually identical and any future tweak to one covers
-     both. Plays right after pet-poke finishes, never overlapping it. */
   .pet.pet-poke-laptop .pet-prop-work { opacity: 1; }
   .pet.pet-poke-laptop .pet-lift { animation: pet-work-bob 1.3s ease-in-out infinite; }
   .pet.pet-poke-laptop .pet-arm-l { animation: pet-type-arm .42s ease-in-out infinite; }
@@ -483,31 +663,30 @@
   /* Every 5th poke while idle, for whoever's paying attention. */
   .pet.pet-heart-go .pet-heart { animation: pet-heart-float 1.1s ease-out; }
   @keyframes pet-heart-float {
-    0% { opacity: 0; transform: translateY(0) scale(.6); }
-    25% { opacity: 1; }
-    100% { opacity: 0; transform: translateY(-14px) scale(1); }
+    0%   { opacity: 0; transform: translateY(2px) scale(0.4) rotate(-8deg); }
+    25%  { opacity: 1; transform: translateY(-6px) scale(1.15) rotate(6deg); }
+    60%  { opacity: 0.9; transform: translateY(-14px) scale(1) rotate(-4deg); }
+    100% { opacity: 0; transform: translateY(-22px) scale(0.8) rotate(8deg); }
   }
 
-  /* Asleep: no cursor movement for a couple of minutes — eyes close, the
-     hover slows to a slow breathing drift, and a couple of "z"s drift up.
-     Only ever applied while idle (see _petIdleCheck); waking is instant on
-     any pointer movement or click. */
+  /* Asleep */
   .pet.pet-asleep { animation-duration: 7s; }
   .pet.pet-asleep .pet-eye { animation: none; transform: scaleY(.08); }
-  /* Same fix as pet-near below: a plain `opacity` can't win against
-     .pet-glow's own always-on pet-thruster animation, so dimming it means
-     swapping in a dimmed variant of that animation. */
   .pet.pet-asleep .pet-glow { animation: pet-thruster-asleep 7s ease-in-out infinite; }
-  @keyframes pet-thruster-asleep { 0%, 100% { opacity: .07; transform: scaleX(1); } 50% { opacity: .14; transform: scaleX(.85); } }
+  @keyframes pet-thruster-asleep {
+    0%, 100% { opacity: .06; transform: scaleX(1) scaleY(1); }
+    50%      { opacity: .15; transform: scaleX(.92) scaleY(1.08) translateY(0.5px); }
+  }
   .pet.pet-asleep::before, .pet.pet-asleep::after {
     content: "z"; position: absolute; top: -2px; right: 8px; font: 700 12px/1 sans-serif;
     color: var(--accent); opacity: 0; pointer-events: none; animation: pet-zzz 2.8s ease-in infinite;
   }
   .pet.pet-asleep::after { right: 0; top: -8px; font-size: 8px; animation-delay: 1s; }
   @keyframes pet-zzz {
-    0% { opacity: 0; transform: translate(0, 0) scale(.8); }
-    20% { opacity: .85; }
-    100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); }
+    0%   { opacity: 0; transform: translate(0, 0) scale(0.7) rotate(-4deg); }
+    25%  { opacity: 0.9; transform: translate(3px, -5px) scale(1) rotate(4deg); }
+    70%  { opacity: 0.65; transform: translate(8px, -14px) scale(1.15) rotate(-3deg); }
+    100% { opacity: 0; transform: translate(14px, -22px) scale(1.3) rotate(6deg); }
   }
 
   /* Curious: a file is being dragged over the composer, before it's even
@@ -533,88 +712,85 @@
   .pet-bowl { fill: #8b93a3; stroke: var(--border); stroke-width: .6; }
   .pet-bowl-rim { fill: var(--panel2, #1c2130); stroke: var(--border); stroke-width: .6; }
   .pet-food { fill: var(--hit); }
-  /* Viewed at a side angle rather than flat-on — the screen wrap is skewed
-     around the hinge point where it meets the base, like an opened laptop
-     seen from beside her rather than a TV facing the viewer head-on. Same
-     angle applied to the bowl below, so every scene shares one "camera". */
-  .pet-laptop-screen-wrap { transform: skewX(-14deg); transform-origin: 20px 82px; }
-  .pet-bowl-wrap { transform: skewX(-14deg); transform-origin: 25px 73px; }
+  .pet-laptop-screen-wrap { transform-origin: 36px 63px; }
+  .pet-bowl-wrap { transform-origin: 36px 63px; }
 
   .pet[data-routine="cook"] .pet-prop-cook { opacity: 1; }
   .pet[data-routine="cook"] .pet-steam-1 { animation: pet-steam 1.5s ease-in infinite; }
   .pet[data-routine="cook"] .pet-steam-2 { animation: pet-steam 1.5s ease-in infinite .75s; }
   @keyframes pet-steam {
-    0% { opacity: 0; transform: translateY(0) scaleY(.7); }
-    30% { opacity: .85; }
-    100% { opacity: 0; transform: translateY(-12px) scaleY(1.2); }
+    0%   { opacity: 0; transform: translateY(0) scale(0.6) rotate(0deg); }
+    30%  { opacity: 0.9; transform: translateY(-5px) scale(1) rotate(-6deg); }
+    70%  { opacity: 0.5; transform: translateY(-12px) scale(1.18) rotate(8deg); }
+    100% { opacity: 0; transform: translateY(-18px) scale(1.35) rotate(-10deg); }
   }
-  /* The stir: arm, pan and body all move on the same beat, so it reads as
-     one continuous stirring motion rather than an arm twitching on its own.
-     Pivots from each element's own fill-box center (see the blanket
-     `.pet svg *` rule). */
   .pet[data-routine="cook"] .pet-arm-l { animation: pet-stir-arm .8s ease-in-out infinite; }
   @keyframes pet-stir-arm {
-    0%, 100% { transform: rotate(calc(-20deg + var(--arm-near-rot, 0deg))); }
-    50% { transform: rotate(calc(24deg + var(--arm-near-rot, 0deg))); }
+    0%, 100% { transform: rotate(calc(-24deg + var(--arm-near-rot, 0deg))) translateY(0); }
+    25%      { transform: rotate(calc(-8deg + var(--arm-near-rot, 0deg))) translateY(-1.2px); }
+    50%      { transform: rotate(calc(26deg + var(--arm-near-rot, 0deg))) translateY(0.8px); }
+    75%      { transform: rotate(calc(6deg + var(--arm-near-rot, 0deg))) translateY(1.4px); }
   }
   .pet[data-routine="cook"] .pet-pan, .pet[data-routine="cook"] .pet-pan-handle {
     animation: pet-stir-pan .8s ease-in-out infinite;
   }
-  @keyframes pet-stir-pan { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+  @keyframes pet-stir-pan {
+    0%, 100% { transform: rotate(-5deg) translateY(0); }
+    50%      { transform: rotate(5deg) translateY(-0.8px); }
+  }
   .pet[data-routine="cook"] .pet-lift { animation: pet-stir-bob .8s ease-in-out infinite; }
   @keyframes pet-stir-bob {
-    0%, 100% { transform: translate(-1px, 0) rotate(-1.5deg); }
-    50% { transform: translate(1px, -1.5px) rotate(1.5deg); }
+    0%, 100% { transform: translate(-1.5px, 0) rotate(-2deg); }
+    50%      { transform: translate(1.5px, -2px) rotate(2deg); }
   }
 
   .pet[data-routine="work"] .pet-prop-work { opacity: 1; }
-  /* Turned to a side profile for the whole activity, same as eat/sleep —
-     she's angled at the screen, not facing the viewer. */
-  .pet[data-routine="work"] .pet-lift { animation: pet-work-bob 1.3s ease-in-out infinite; }
+  .pet[data-routine="work"] .pet-lift { animation: pet-work-bob 1.4s ease-in-out infinite; }
+  .pet[data-routine="work"] .pet-eye { transform: scaleY(0.72) translateY(2px); }
   @keyframes pet-work-bob {
-    0%, 100% { transform: translate(-4px, 20px) rotate(90deg) scale(.98); }
-    50% { transform: translate(-4px, 23px) rotate(90deg) scale(.975); }
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50%      { transform: translateY(-2px) rotate(1deg); }
   }
-  /* Both arms tap along, slightly out of phase — a little typing rhythm
-     instead of just resting at her sides while the screen does the work. */
-  .pet[data-routine="work"] .pet-arm-l { animation: pet-type-arm .42s ease-in-out infinite; }
-  .pet[data-routine="work"] .pet-arm-r { animation: pet-type-arm .42s ease-in-out infinite .21s; }
-  @keyframes pet-type-arm {
-    0%, 100% { transform: translateY(var(--arm-near-y, 0px)); }
-    50% { transform: translateY(calc(-2.4px + var(--arm-near-y, 0px))); }
+  .pet[data-routine="work"] .pet-arm-l { animation: pet-type-arm-l .32s ease-in-out infinite alternate; }
+  .pet[data-routine="work"] .pet-arm-r { animation: pet-type-arm-r .32s ease-in-out infinite alternate .16s; }
+  @keyframes pet-type-arm-l {
+    0%   { transform: rotate(18deg) translateY(2px); }
+    100% { transform: rotate(26deg) translateY(4px); }
+  }
+  @keyframes pet-type-arm-r {
+    0%   { transform: rotate(-18deg) translateY(2px); }
+    100% { transform: rotate(-26deg) translateY(4px); }
   }
   .pet[data-routine="work"] .pet-laptop-line-1 { animation: pet-type 1.1s steps(1) infinite; }
   .pet[data-routine="work"] .pet-laptop-line-2 { animation: pet-type 1.1s steps(1) infinite .3s; }
   .pet[data-routine="work"] .pet-laptop-line-3 { animation: pet-type 1.1s steps(1) infinite .6s; }
-  @keyframes pet-type { 0%, 35% { opacity: .3; } 50%, 85% { opacity: .85; } 100% { opacity: .3; } }
+  @keyframes pet-type { 0%, 35% { opacity: .25; } 50%, 85% { opacity: .9; } 100% { opacity: .25; } }
 
-  /* Eat: a quick, rapid squash-and-stretch chew — much snappier than the
-     other phases' motion since a bite is a quick beat, not a sustained
-     action. The heart pop (reusing the poke milestone's own element/class)
-     fires near the end of the phase, see _petApplyRoutinePhase. */
   .pet[data-routine="eat"] .pet-prop-eat { opacity: 1; }
-  /* Turned to a side profile for the whole activity — not facing the viewer
-     while eating, the same idea as the sleep pose's rotate, just upright
-     instead of lying down. */
-  .pet[data-routine="eat"] .pet-lift { animation: pet-chew .38s ease-in-out infinite; }
+  .pet[data-routine="eat"] .pet-lift { animation: pet-chew .48s ease-in-out infinite; }
+  .pet[data-routine="eat"] .pet-eye { transform: scaleY(0.6) translateY(1.5px); }
   @keyframes pet-chew {
-    0%, 100% { transform: translate(-4px, 20px) rotate(90deg) scaleY(1) scaleX(1); }
-    50% { transform: translate(-4px, 20px) rotate(90deg) scaleY(.88) scaleX(1.08); }
+    0%, 100% { transform: translateY(0px) scale(1); }
+    40%      { transform: translateY(-2px) scaleX(1.06) scaleY(0.94); }
+    70%      { transform: translateY(-0.5px) scaleX(0.98) scaleY(1.02); }
   }
-  .pet[data-routine="eat"] .pet-arm-l { animation: pet-chew-arm .38s ease-in-out infinite; }
-  .pet[data-routine="eat"] .pet-arm-r { animation: pet-chew-arm .38s ease-in-out infinite; }
-  @keyframes pet-chew-arm {
-    0%, 100% { transform: translateY(var(--arm-near-y, 0px)); }
-    50% { transform: translateY(calc(1.5px + var(--arm-near-y, 0px))); }
+  .pet[data-routine="eat"] .pet-arm-l { animation: pet-chew-arm-l .48s ease-in-out infinite; }
+  .pet[data-routine="eat"] .pet-arm-r { animation: pet-chew-arm-r .48s ease-in-out infinite; }
+  @keyframes pet-chew-arm-l {
+    0%, 100% { transform: rotate(22deg) translateY(1px); }
+    50%      { transform: rotate(32deg) translateY(-2px); }
+  }
+  @keyframes pet-chew-arm-r {
+    0%, 100% { transform: rotate(-22deg) translateY(1px); }
+    50%      { transform: rotate(-32deg) translateY(-2px); }
   }
 
-  /* Wander: laptop's put away (it's just not [data-routine="work"] anymore),
-     a bigger float-bob than the plain idle hover, while _petPatrolStart
-     drives an actual bounded stroll along the composer's top edge. */
   .pet[data-routine="wander"] .pet-lift { animation: pet-wander-bob 2.2s ease-in-out infinite; }
   @keyframes pet-wander-bob {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    50% { transform: translateY(-5px) rotate(2deg); }
+    0%, 100% { transform: translateY(0px) rotate(-2.5deg); }
+    30%      { transform: translateY(-6px) rotate(0.8deg) scaleX(1.01); }
+    65%      { transform: translateY(-7.5px) rotate(3deg) scaleX(0.99); }
+    85%      { transform: translateY(-2px) rotate(-1deg); }
   }
 
   /* No bed prop, no lying down — she just naps standing up right where she
@@ -628,7 +804,8 @@
   .fab:hover { border-color: var(--accent); }
   .fab svg { width: 26px; height: 26px; }
   .metrics-pop { display: none; position: absolute; top: 54px; right: 22px; z-index: 40; width: min(92vw, 420px);
-    background: var(--pop); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; }
+    background: var(--pop); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 16px;
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
   .metrics-pop.open { display: block; animation: rise .16s ease; }
   .mp-head { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
   .dash { display: grid; grid-template-columns: 150px 1fr; gap: 14px; }
@@ -802,15 +979,23 @@
   .md p { margin: 0 0 10px; } .md h3, .md h4, .md h5 { margin: 14px 0 8px; font-weight: 650; line-height: 1.3; }
   .md h3 { font-size: 17px; } .md h4 { font-size: 15px; } .md h5 { font-size: 14px; color: var(--muted); }
   .md ul, .md ol { margin: 6px 0 12px; padding-left: 22px; } .md li { margin: 3px 0; }
-  .md code { background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .codewrap { margin: 0 0 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .codebar { display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px; background: var(--panel2); border-bottom: 1px solid var(--border); }
-  .codebar .lang { font-size: 11px; color: var(--muted); text-transform: lowercase; letter-spacing: .03em; margin-right: auto; font-weight: 600; }
-  .code-btn, .code-copy { font-size: 11.5px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; }
+  .md code { background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font-size: 13px; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .codewrap { margin: 0 0 14px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .codebar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--panel2); border-bottom: 1px solid var(--border); }
+  .code-dots { display: inline-flex; align-items: center; gap: 5px; margin-right: 4px; }
+  .cdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .cdot-r { background: #ff5f56; opacity: .85; }
+  .cdot-y { background: #ffbd2e; opacity: .85; }
+  .cdot-g { background: #27c93f; opacity: .85; }
+  .codebar .lang { font-size: 11px; color: var(--muted); text-transform: lowercase; letter-spacing: .03em; margin-right: auto; font-weight: 600; background: var(--bg2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 5px; font-family: 'JetBrains Mono', monospace; }
+  .code-btn, .code-copy { font-size: 11.5px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; transition: all .15s ease; }
   .code-btn:hover, .code-copy:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .code-copy.copied { color: var(--hit) !important; background: color-mix(in srgb, var(--hit) 12%, transparent); animation: copySpring .32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes copySpring { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .code-copy.copied { animation: none; } }
   .code-btn.preview { color: var(--accent); }
   .code-btn svg { width: 12px; height: 12px; }
-  .codewrap pre { margin: 0; border: none; border-radius: 0; background: var(--bg2); padding: 12px 14px; overflow-x: auto; }
+  .codewrap pre { margin: 0; border: none; border-radius: 0; background: var(--bg2); padding: 14px 16px; overflow-x: auto; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.6; }
   .codewrap.collapsed pre { max-height: 220px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); }
   /* inline preview — a code block's rendered result, embedded in the chat flow
      right under it (instead of a side panel sliding in from the right). */
@@ -1479,6 +1664,7 @@
            top edge (this element's containing block) rather than floating
            inside the message area. -->
       <div class="pet" id="pet" data-mood="idle" title="Idle" aria-hidden="true">
+        <div class="pet-bubble" id="pet-bubble" aria-live="polite"></div>
         <svg viewBox="0 0 72 78">
           <defs>
             <linearGradient id="pet-body-grad" x1="0" y1="0" x2="0" y2="1">
@@ -1501,27 +1687,24 @@
             <circle class="pet-stove-knob" cx="-17.5" cy="53" r="1.4"/>
             <circle class="pet-stove-knob" cx="-7.5" cy="53" r="1.4"/>
           </g>
-          <!-- Side profile, same skewed "camera angle" as the laptop below,
-               not a top-down bowl — a trapezoid body narrowing to its base,
-               with the food peeking over the rim edge. -->
+          <!-- Eat prop: centered healthy snack bowl resting on front table -->
           <g class="pet-prop pet-prop-eat">
             <g class="pet-bowl-wrap">
-              <polygon class="pet-bowl" points="25,63 47,63 43,73 29,73"/>
-              <rect class="pet-bowl-rim" x="24" y="61.4" width="24" height="2.8" rx="1.4"/>
-              <circle class="pet-food pet-food-1" cx="31" cy="60.8" r="1.5"/>
-              <circle class="pet-food pet-food-2" cx="36.5" cy="59.8" r="1.5"/>
-              <circle class="pet-food pet-food-3" cx="41.5" cy="61" r="1.3"/>
+              <polygon class="pet-bowl" points="26,56 46,56 42,65 30,65"/>
+              <rect class="pet-bowl-rim" x="24" y="54.4" width="24" height="2.4" rx="1.2"/>
+              <circle class="pet-food pet-food-1" cx="31" cy="53.8" r="1.5"/>
+              <circle class="pet-food pet-food-2" cx="36" cy="52.8" r="1.5"/>
+              <circle class="pet-food pet-food-3" cx="41" cy="53.8" r="1.4"/>
             </g>
           </g>
-          <!-- Drawn at a side angle (skewed, not a flat front-on rectangle) so it
-               reads as a laptop she's actually sitting at, not a TV screen. -->
+          <!-- Work prop: mini developer laptop sitting right in front -->
           <g class="pet-prop pet-prop-work">
-            <polygon class="pet-laptop-base" points="16,86 56,86 50,90 12,90"/>
+            <polygon class="pet-laptop-base" points="20,62 52,62 48,67 24,67"/>
             <g class="pet-laptop-screen-wrap">
-              <rect class="pet-laptop-screen" x="20" y="63" width="30" height="19" rx="2"/>
-              <rect class="pet-laptop-line pet-laptop-line-1" x="23" y="67" width="16" height="2" rx="1"/>
-              <rect class="pet-laptop-line pet-laptop-line-2" x="23" y="71" width="22" height="2" rx="1"/>
-              <rect class="pet-laptop-line pet-laptop-line-3" x="23" y="75" width="12" height="2" rx="1"/>
+              <rect class="pet-laptop-screen" x="23" y="47" width="26" height="16" rx="2"/>
+              <rect class="pet-laptop-line pet-laptop-line-1" x="26" y="50.5" width="14" height="1.6" rx="0.8"/>
+              <rect class="pet-laptop-line pet-laptop-line-2" x="26" y="54" width="19" height="1.6" rx="0.8"/>
+              <rect class="pet-laptop-line pet-laptop-line-3" x="26" y="57.5" width="10" height="1.6" rx="0.8"/>
             </g>
           </g>
           <g class="pet-rig">
@@ -1533,6 +1716,14 @@
               <rect class="pet-visor" x="19" y="20" width="34" height="15" rx="7.5"/>
               <g class="pet-eye-wrap pet-eye-wrap-l"><ellipse class="pet-eye pet-eye-l" cx="28.5" cy="27.5" rx="4.2" ry="5.2"/></g>
               <g class="pet-eye-wrap pet-eye-wrap-r"><ellipse class="pet-eye pet-eye-r" cx="43.5" cy="27.5" rx="4.2" ry="5.2"/></g>
+              <!-- Code Mode Headphones Accessory -->
+              <g class="pet-accessory pet-acc-headphones">
+                <path class="pet-headband" d="M15 26 A21 16 0 0 1 57 26" fill="none" stroke-width="2.6" stroke-linecap="round"/>
+                <rect class="pet-earpad pet-earpad-l" x="12" y="20" width="6" height="13" rx="2.5"/>
+                <rect class="pet-earpad pet-earpad-r" x="54" y="20" width="6" height="13" rx="2.5"/>
+                <circle class="pet-ear-glow pet-ear-glow-l" cx="15" cy="26.5" r="1.8"/>
+                <circle class="pet-ear-glow pet-ear-glow-r" cx="57" cy="26.5" r="1.8"/>
+              </g>
             </g>
           </g>
         </svg>
@@ -2025,6 +2216,7 @@ function syncComposerToggles() {
   $("code-label").title = code ? "Code tab — always code-first, with live preview" : "Code mode — the model answers code-first, with syntax highlighting and a live preview for HTML";
   updateOpenProjectBtn();
   syncSendLabel();
+  syncPetAccessories();
 }
 
 // ---- feed ----
@@ -2171,7 +2363,7 @@ function renderCodeBlock(lang, code) {
     (long ? `<button class="code-btn collapse" type="button">Expand</button>` : "") +
     `<button class="code-btn download" type="button" data-code="${enc}" data-lang="${_he(label)}" title="Download">${_icon.dl}</button>` +
     `<button class="code-copy" type="button">${_icon.copy}Copy</button>`;
-  return `<div class="codewrap${long ? " collapsed" : ""}"><div class="codebar"><span class="lang">${_he(label)}</span>${btns}</div>` +
+  return `<div class="codewrap${long ? " collapsed" : ""}"><div class="codebar"><div class="code-dots"><i class="cdot cdot-r"></i><i class="cdot cdot-y"></i><i class="cdot cdot-g"></i></div><span class="lang">${_he(label)}</span>${btns}</div>` +
     `<pre><code>${hi}</code></pre></div>`;
 }
 
@@ -2400,7 +2592,7 @@ function renderFeed() {
   }));
   box.querySelectorAll(".code-copy").forEach(b => b.addEventListener("click", () => {
     const code = b.closest(".codewrap").querySelector("code").textContent;
-    navigator.clipboard?.writeText(code); const t = b.innerHTML; b.textContent = "Copied ✓"; setTimeout(() => b.innerHTML = t, 1200);
+    navigator.clipboard?.writeText(code); const t = b.innerHTML; b.innerHTML = "✓ Copied"; b.classList.add("copied"); setTimeout(() => { b.innerHTML = t; b.classList.remove("copied"); }, 1200);
   }));
   box.querySelectorAll(".code-btn.collapse").forEach(b => b.addEventListener("click", () => {
     const w = b.closest(".codewrap"); const c = w.classList.toggle("collapsed"); b.textContent = c ? "Expand" : "Collapse";
@@ -4283,6 +4475,28 @@ function classifyErr(status, detail) {
   if (status === 422) return { retryable: false, friendly: "Nothing to send", detail };
   return { retryable: false, friendly: detail || "Something went wrong", detail };
 }
+// ---- pet thought bubble & accessories (Options 1 & 2) ----
+let _bubbleTimer = null;
+function showPetBubble(text, durationMs = 2400) {
+  const b = $("pet-bubble"); if (!b) return;
+  clearTimeout(_bubbleTimer);
+  b.textContent = text;
+  b.classList.add("visible");
+  _bubbleTimer = setTimeout(() => {
+    b.classList.remove("visible");
+  }, durationMs);
+}
+
+function syncPetAccessories() {
+  const pet = $("pet"); if (!pet) return;
+  const isCodeActive = $("code-toggle")?.checked || isCode(current());
+  const hadHeadphones = pet.classList.contains("has-headphones");
+  pet.classList.toggle("has-headphones", Boolean(isCodeActive));
+  if (isCodeActive && !hadHeadphones) {
+    showPetBubble("Code mode active! 🎧", 2200);
+  }
+}
+
 // ---- pet mood ----
 // Purely decorative reflection of state the UI already surfaces elsewhere
 // (the streaming spinner, the "MISS/HIT · live call" badge, the error
@@ -4293,7 +4507,7 @@ function setPetMood(mood, autoRevertMs) {
   if (mood !== "idle") _petRoutineCancel();   // real work is happening — she's not off doing her own thing
   pet.dataset.mood = mood;
   pet.title = mood === "thinking" ? "Thinking…" : mood === "happy" ? "Cache hit — instant, no call needed"
-    : mood === "sad" ? "That one didn't go through" : "Idle";
+    : mood === "sad" ? "That one didn't go through" : mood === "error" ? "Something went wrong at the server" : "Idle";
   clearTimeout(_petRevertTimer);
   if (autoRevertMs) _petRevertTimer = setTimeout(() => { pet.dataset.mood = "idle"; pet.title = "Idle"; }, autoRevertMs);
   _petTrackKick();   // apply the new mood's tracking gain immediately, even with a still cursor
@@ -4305,7 +4519,7 @@ function setPetMood(mood, autoRevertMs) {
 // snapping. Everything here writes to the .pet-rig/.pet-eye-wrap transforms
 // added in CSS, never to .pet/.pet-body/.pet-eye — those still belong
 // entirely to the mood keyframes in setPetMood's world, untouched by this.
-const PET_TRACK_GAIN = { idle: 1, thinking: .25, happy: .6, sad: .35 };
+const PET_TRACK_GAIN = { idle: 1, thinking: .25, happy: .6, sad: .35, error: 0.12 };
 let _petPtr = null, _petDirty = false, _petRaf = 0;
 let _petRect = null, _petRectAt = 0;
 let _petCur = { eyeX: 0, eyeY: 0, rigX: 0, rigY: 0 };
@@ -4356,6 +4570,18 @@ const PET_ROUTINE_PHASES = [
 ];
 let _petRoutineActive = false, _petRoutinePhaseIdx = -1, _petRoutinePhaseAt = 0;
 let _petRoutineRolled = false;   // one coin-flip per idle stretch — reset in _petWake
+// Wake-beat state: true for the 1.5s between sleep-phase-end and cook restart.
+// _petRoutineCancel clears this to prevent the timeout callback from firing
+// after a user interaction has already interrupted the routine.
+let _petWaking = false;
+let _petWakeTimeout = null;
+// Jittered duration for the current phase — set each time _petApplyRoutinePhase
+// is called so the routine never feels like a mechanical clock.
+let _petRoutinePhaseDuration = 0;
+// ±18% random jitter; min across all phases: eat(9000) × 0.82 = 7380ms — safe.
+function _petRoutinePhaseMs(phase) {
+  return Math.round(phase.ms * (0.82 + Math.random() * 0.36));
+}
 let _petEatHeartTimer = null;
 
 function _petApplyRoutinePhase(idx) {
@@ -4363,11 +4589,19 @@ function _petApplyRoutinePhase(idx) {
   _petPatrolStop();          // only the "wander" phase patrols; every other phase makes sure it's off
   clearTimeout(_petEatHeartTimer);
   _petRoutinePhaseIdx = idx;
-  _petRoutinePhaseAt = performance.now();
   const phase = PET_ROUTINE_PHASES[idx];
+  _petRoutinePhaseAt = performance.now();
+  _petRoutinePhaseDuration = _petRoutinePhaseMs(phase);   // jitter each entry
   pet.dataset.routine = phase.name;
   pet.classList.toggle("pet-asleep", phase.name === "sleep");
   pet.title = phase.title;
+  const ROUTINE_QUIPS = {
+    cook: "Cooking clean code… 🍳",
+    eat: "Nom nom nom… 🔋",
+    work: "Deep in the prompt… 💻",
+    wander: "Exploring the dock… 🐾"
+  };
+  if (ROUTINE_QUIPS[phase.name]) showPetBubble(ROUTINE_QUIPS[phase.name], 2200);
   if (phase.name === "wander") _petPatrolStart();
   if (phase.name === "eat") {
     // The heart pop lands just before the phase ends, like a happy little
@@ -4384,8 +4618,10 @@ function _petRoutineStart(idx) {
   _petApplyRoutinePhase(idx);
 }
 function _petRoutineCancel() {
-  if (!_petRoutineActive) return;
+  if (!_petRoutineActive && !_petWaking) return;
   _petRoutineActive = false;
+  _petWaking = false;
+  clearTimeout(_petWakeTimeout);   // prevent orphaned wake-beat from restarting cook
   _petRoutinePhaseIdx = -1;
   _petPatrolStop();
   clearTimeout(_petEatHeartTimer);
@@ -4399,6 +4635,7 @@ function _petRoutineCancel() {
 // phases on a loop for as long as nothing real happens.
 function _petRoutineTick() {
   const pet = $("pet"); if (!pet) return;
+  if (_petWaking) return;   // wake-beat owns this 1.5s window — don't advance
   if ((pet.dataset.mood || "idle") !== "idle") { _petRoutineCancel(); return; }
   const now = performance.now();
   if (!_petRoutineActive) {
@@ -4409,8 +4646,23 @@ function _petRoutineTick() {
     }
     return;
   }
-  if (now - _petRoutinePhaseAt > PET_ROUTINE_PHASES[_petRoutinePhaseIdx].ms) {
-    _petApplyRoutinePhase((_petRoutinePhaseIdx + 1) % PET_ROUTINE_PHASES.length);
+  if (now - _petRoutinePhaseAt > _petRoutinePhaseDuration) {
+    const currentPhase = PET_ROUTINE_PHASES[_petRoutinePhaseIdx];
+    if (currentPhase.name === "sleep") {
+      // Wake-up beat: 1.5s where she opens her eyes and floats back upright
+      // before restarting the cycle — no snap from sleeping to full cook.
+      _petWaking = true;
+      pet.classList.remove("pet-asleep");
+      delete pet.dataset.routine;
+      pet.title = "Waking up\u2026";
+      showPetBubble("Yaaawn… ready! ☀️", 1800);
+      _petWakeTimeout = setTimeout(() => {
+        _petWaking = false;
+        if (_petRoutineActive) _petApplyRoutinePhase(0);   // restart from cook
+      }, 1500);
+    } else {
+      _petApplyRoutinePhase((_petRoutinePhaseIdx + 1) % PET_ROUTINE_PHASES.length);
+    }
   }
 }
 
@@ -4547,6 +4799,15 @@ function _petPoke() {
     }, 640);
   }
   _petPokeCount++;
+  const POKE_QUIPS = [
+    "Bip boop! 🤖",
+    "Hey! Coding here! 💻",
+    "Need an answer? ⚡",
+    "Hovering by! ✨",
+    "All systems operational 🚀",
+    "Gateway online & fast ⚡"
+  ];
+  showPetBubble(POKE_QUIPS[_petPokeCount % POKE_QUIPS.length], 2000);
   if (_petPokeCount % 5 === 0 && pet.dataset.mood === "idle") {
     pet.classList.add("pet-heart-go");
     setTimeout(() => pet.classList.remove("pet-heart-go"), 1100);
@@ -4645,7 +4906,19 @@ async function _streamGenerate(body, msg, convId) {
           msg.tokens = obj.tokens; msg.model = obj.model; msg.latency_ms = obj.latency_ms;
           if (obj.text != null) msg.a = obj.text;
           if (!obj.cached) { recordUsage(body.model, obj.tokens); loadFreeQuota(); }
-          if (isActive()) obj.cached ? setPetMood("happy", 900) : setPetMood("idle");
+          if (isActive()) {
+            if (!obj.cached) {
+              setPetMood("idle");
+            } else if (obj.cache_type === "semantic") {
+              // Semantic hit = clever — spin after happy bounce to celebrate finding a paraphrased match
+              setPetMood("happy", 900);
+              showPetBubble("Paraphrase match! 🧠", 2400);
+              setTimeout(() => _petSpin(), 160);
+            } else {
+              setPetMood("happy", 900);
+              showPetBubble("Instant hit! 🚀", 2200);
+            }
+          }
         }
       }
     }
@@ -4744,7 +5017,10 @@ $("form").addEventListener("submit", async (e) => {
       }
       msg.error = c.friendly; msg.errorDetail = c.detail && c.detail !== c.friendly ? c.detail : null;
       msg.retryable = c.retryable; msg.retrying = null;
-      if (isActive()) setPetMood("sad", 1200);
+      if (isActive()) {
+        setPetMood("error", 1400);
+        showPetBubble("Upstream hiccup! ⚠️", 2400);
+      }
       break;
     }
   }
@@ -4989,6 +5265,7 @@ function syncOptsDot() { $("opts-btn").classList.toggle("active", $("mem-toggle"
 $("mem-toggle").addEventListener("change", syncOptsDot);
 $("code-toggle").addEventListener("change", syncOptsDot);
 $("code-toggle").addEventListener("change", syncSendLabel);
+$("code-toggle").addEventListener("change", syncPetAccessories);
 
 // Shorter composer placeholder on narrow screens — the full text wraps to two
 // lines and gets clipped by the textarea's default single-line height.
