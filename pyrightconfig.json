@@ -1,11 +1,22 @@
 {
   "venvPath": ".",
   "venv": ".venv",
-  "include": ["app", "tests"],
+  "include": [
+    "app",
+    "tests",
+    "scripts"
+  ],
+  "extraPaths": [
+    ".venv/lib/python3.9/site-packages",
+    "."
+  ],
   "executionEnvironments": [
     {
       "root": ".",
-      "extraPaths": ["."]
+      "extraPaths": [
+        ".venv/lib/python3.9/site-packages",
+        "."
+      ]
     }
   ]
 }
